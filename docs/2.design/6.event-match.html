@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark"><title>경기 상세 · LOLpick</title><style>body{background:#080c12;color:#eef2f7;font-family:system-ui;margin:40px}a{color:#c8aa6e}</style></head><body>
+<script>
+(async()=>{
+ const teams={GEN:{name:'Gen.G',color:'#d5b367',region:'LCK · KOREA'},T1:{name:'T1',color:'#ff4258',region:'LCK · KOREA'},HLE:{name:'Hanwha Life',color:'#ee8a45',region:'LCK · KOREA'},BLG:{name:'Bilibili Gaming',color:'#40b8ae',region:'LPL · CHINA'},G2:{name:'G2 Esports',color:'#b2bbc9',region:'LEC · EUROPE'},TES:{name:'Top Esports',color:'#e2685e',region:'LPL · CHINA'}};
+ const params=new URLSearchParams(location.search);const left=params.get('left'),right=params.get('right');
+ if(!teams[left]||!teams[right]||left===right)throw new Error('경기를 찾을 수 없습니다.');
+ const stage=params.get('stage');if(!['플레이인','스위스 스테이지','8강','4강','결승'].includes(stage))throw new Error('경기 단계를 확인할 수 없습니다.');
+ const format=params.get('format');if(!['BO3','BO5'].includes(format))throw new Error('경기 형식을 확인할 수 없습니다.');
+ const date=new Date(params.get('date'));if(!Number.isFinite(date.getTime()))throw new Error('경기 시간을 확인할 수 없습니다.');
+ const pools=[Number(params.get('leftPool')),Number(params.get('rightPool'))];if(pools.some(value=>!Number.isSafeInteger(value)||value<=0))throw new Error('경기 정보를 확인할 수 없습니다.');
+ const state=params.get('status');if(!['open','closed','live','finished'].includes(state))throw new Error('경기 상태를 확인할 수 없습니다.');
+ const response=await fetch('3.match.html');if(!response.ok)throw new Error('경기 화면을 불러오지 못했습니다.');let html=await response.text();
+ // Adapt an independent preview; the original design file is never modified.
+ html=html.replaceAll('Gen.G','__LEFT_NAME__').replaceAll('GEN','__LEFT_ID__').replaceAll('T1','__RIGHT_ID__').replace(/\bgen\b/g,'__LEFT_CLASS__').replace(/\bt1\b/g,'__RIGHT_CLASS__');
+ html=html.replaceAll('__LEFT_NAME__',teams[left].name).replaceAll('__LEFT_ID__',left).replaceAll('__RIGHT_ID__',right).replaceAll('__LEFT_CLASS__',left.toLowerCase()).replaceAll('__RIGHT_CLASS__',right.toLowerCase());
+ html=html.replaceAll('스위스 스테이지',stage).replaceAll('BO3',format);
+ const display=new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(date);
+ html=html.replace(/<time class="match-date"[^>]*>.*?<\/time>/,`<time class="match-date" datetime="${date.toISOString()}">${display}<span>한국 시간</span></time>`);
+ html=html.replace('LCK · KOREA',teams[left].region).replace(/(<section class="team-zone[^]*?<\/section>\s*<section class="team-zone[^]*?<p class="team-region">)LCK · KOREA/,`$1${teams[right].region}`);
+ html=html.replace('5408000',String(pools[0])).replace('4992000',String(pools[1]));
+ html=html.replace('linear-gradient(90deg, #8f7338, #c7a95f 30%, #ffe2a3 85%, #fff2d2)',`linear-gradient(90deg, ${teams[left].color}, color-mix(in srgb, ${teams[left].color} 45%, white))`).replace('linear-gradient(90deg, #ffdedb, #ff8179 13%, #ff4258 55%, #b0243f)',`linear-gradient(90deg, color-mix(in srgb, ${teams[right].color} 45%, white), ${teams[right].color})`);
+ html=html.replaceAll('#d5b367',teams[left].color).replaceAll('#ff4258',teams[right].color).replaceAll('#e1c481',teams[left].color).replaceAll('#fa8493',teams[right].color);
+ html=html.replace('    let stakes = structuredClone(initialStakes);', `    for (const row of initialStakes['${left}']) row.amount = Math.floor(row.amount * ${pools[0]} / 5408000);\n    for (const row of initialStakes['${right}']) row.amount = Math.floor(row.amount * ${pools[1]} / 4992000);\n    let stakes = structuredClone(initialStakes);`);
+ html=html.replace('</style>','.event-back { display: inline-block; margin-bottom: 20px; color: #9aaac0; text-decoration: none; font-size: 11px; } .event-back:hover { color: #c8aa6e; } .pick-button:disabled { cursor: default; opacity: .6; } .match-stage-status { font-size: 10px; color: #9eb0c6; margin-top: 6px; }</style>');
+ html=html.replace('<main class="canvas">','<main class="canvas"><a class="event-back" href="5.event.html">← 2026 Worlds 경기 일정</a>');
+ if(state!=='open'){
+ const label={closed:'베팅 종료',live:'경기 진행 중',finished:'경기 종료'}[state];
+ html=html.replace('</time>',`</time><p class="match-stage-status">${label}${state==='finished'?' · 2 : 1':state==='live'?' · 1 : 0':''}</p>`);
+ html=html.replace('    updatePools();\n  <\/script>',`    updatePools();\n    document.querySelectorAll('[data-pick]').forEach(button => { button.disabled = true; button.querySelector('span').textContent = '${label}'; });\n  <\/script>`);
+ }
+ document.open();document.write(html);document.close();
+})().catch(error=>{const heading=document.createElement('p');heading.textContent=error.message;const link=document.createElement('a');link.href='5.event.html';link.textContent='이벤트로 돌아가기';document.body.replaceChildren(heading,link)});
+</script>
+</body></html>

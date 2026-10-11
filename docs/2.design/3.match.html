@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Gen.G vs T1 · LOLpick</title>
+  <style>
+    :root { color-scheme: dark; --bg: #080c12; --surface: #111923; --line: #293544; --text: #eef2f7; --muted: #98a6b8; --gold: #c8aa6e; --gen: #d5b367; --t1: #ff4258; font-family: 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; font-synthesis: none; -webkit-font-smoothing: antialiased; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    h1, h2, p { margin: 0; }
+    input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--gold); outline-offset: 5px; }
+    .canvas { max-width: 1080px; margin: 0 auto; padding: 38px 38px 30px; }
+    .arena { border: 1px solid #28313e; background: #0c121b; position: relative; isolation: isolate; }
+    .arena::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 10% 35%, #d5b36713, transparent 48%), radial-gradient(ellipse at 90% 35%, #ff425813, transparent 48%); z-index: -1; pointer-events: none; }
+    .match-header { display: flex; justify-content: center; text-align: center; align-items: center; gap: 20px; margin: 0 76px; padding: 28px 0 0; border-bottom: 0; }
+    .event { display: flex; align-items: center; gap: 12px; }
+    .event-symbol { color: var(--gold); font-size: 24px; }
+    .event-name { color: var(--gold); font-size: 12px; letter-spacing: .12em; font-weight: 700; }
+    .match-date { display: block; margin-top: 8px; font-size: 11px; color: #b3bfce; font-variant-numeric: tabular-nums; }
+    .match-date span { color: #78879b; font-size: 9px; margin-left: 5px; }
+    .event-round { font-size: 10px; color: #94a1b2; margin-top: 3px; }
+    .open { display: flex; align-items: center; gap: 7px; color: #c4d7bd; font-size: 10px; border: 1px solid #6c836343; padding: 5px 10px; }
+    .open::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: #a2bd92; }
+    .logo-toggle { border: 0; background: none; padding: 0; cursor: pointer; }
+    .faceoff { display: grid; grid-template-columns: 1fr 140px 1fr; align-items: center; padding: 38px 70px 32px; }
+    .team-logo { text-align: center; margin: auto; font-family: Impact, 'Arial Black', sans-serif; font-weight: 900; font-size: 96px; letter-spacing: -5px; transform: skew(-8deg); line-height: 1; }
+    .gen .team-logo { color: var(--gen); }
+    .t1 .team-logo { color: var(--t1); font-size: 122px; }
+    .fixture { text-align: center; }
+    .fixture h1 { font-size: 24px; font-weight: 450; letter-spacing: .14em; color: #8c97a5; }
+    .fixture time { display: block; margin-top: 12px; font-size: 10px; color: #697789; }
+    .team-stage { --columns: 1fr 1fr; display: grid; grid-template-columns: var(--columns); position: relative; margin: 0 46px; transition: grid-template-columns 450ms cubic-bezier(.22,1,.36,1); }
+    .team-stage[data-active="GEN"] { --columns: 1.65fr 1fr; }
+    .team-stage[data-active="T1"] { --columns: 1fr 1.65fr; }
+    .team-zone { position: relative; min-width: 0; height: 280px; padding: 26px 30px; overflow: hidden; transition: background .4s; }
+    .team-zone::before { content: ''; position: absolute; inset: -35px -25px 0; z-index: -1; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at 45% 70%, #d5b36717, transparent 70%); transition: opacity .4s; }
+    .team-zone.t1::before { background: radial-gradient(ellipse at 55% 70%, #ff425817, transparent 70%); }
+    .team-zone.active::before { opacity: 1; }
+    .stake-ranking { position: absolute; inset: 26px 30px; opacity: 1; transition: opacity .2s; pointer-events: none; }
+    .team-stage[data-active] .stake-ranking { opacity: 0; }
+    .rank-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 15px; }
+    .rank-heading h2 { font-size: 10px; font-weight: 600; color: #a4b0c1; letter-spacing: .08em; }
+    .rank-heading span { font-size: 8px; color: #69788e; }
+    .stake-list { list-style: none; padding: 0; margin: 0; }
+    .stake-row-item { margin-bottom: 7px; }
+    .stake-row-item:last-child { margin-bottom: 0; }
+    .stake-meta { display: flex; align-items: center; gap: 9px; min-width: 0; }
+    .stake-place { font-size: 11px; font-weight: 700; color: #78879b; width: 13px; flex-shrink: 0; font-variant-numeric: tabular-nums; }
+    .stake-row-item:first-child .stake-place { color: #dcc18b; }
+    .stake-user { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+    .stake-name { font-size: 12px; font-weight: 600; letter-spacing: -.2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cheer-seal { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 19px; height: 20px; clip-path: polygon(7% 0,93% 0,93% 73%,50% 100%,7% 73%); border-top: 2px solid #c8aa6e; background: #c8aa6e16; color: #ddc38b; padding-bottom: 3px; font-size: 7px; font-weight: 850; letter-spacing: -.4px; }
+    .cheer-seal.t1 { color: #fa8493; background: #ff425816; }
+    .stake-value { margin-left: auto; font-size: 10px; color: #94a3b8; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .stake-chart { display: flex; align-items: center; gap: 8px; margin-top: 3px; padding-left: 22px; }
+    .stake-track { display: flex; flex: 1; height: 3px; background: #ffffff05; }
+    .stake-fill { width: var(--stake-share); background: #d5b367; }
+    .stake-percent { width: 35px; line-height: 10px; font-size: 8px; color: #79889d; font-variant-numeric: tabular-nums; }
+    .t1 .rank-heading, .t1 .stake-meta, .t1 .stake-chart { flex-direction: row-reverse; }
+    .t1 .stake-value { margin-left: 0; margin-right: auto; }
+    .t1 .stake-chart { padding-left: 0; padding-right: 22px; }
+    .t1 .stake-track { justify-content: flex-end; }
+    .t1 .stake-fill { background: #ef526c; }
+    .t1 .stake-percent { text-align: right; }
+    .team-details { position: relative; opacity: 0; transform: translateY(12px); pointer-events: none; transition: opacity .25s, transform .4s; }
+    .team-zone.active .team-details { opacity: 1; transform: translateY(0); }
+    .team-region { font-size: 10px; color: #8897aa; letter-spacing: .17em; }
+    .team-name { font-size: 29px; font-weight: 650; letter-spacing: -.8px; margin-top: 5px; }
+    .team-stats { display: flex; align-items: end; gap: 24px; margin-top: 19px; }
+    .team-share { font-size: 51px; line-height: 1; letter-spacing: -2px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .team-share small { font-size: 20px; font-weight: 400; letter-spacing: 0; }
+    .gen .team-share { color: #e1c481; }
+    .t1 .team-share { color: #fa8493; }
+    .stat-caption { display: block; color: #77879c; font-size: 9px; margin-top: 8px; letter-spacing: 0; font-weight: 400; }
+    .team-pool { font-size: 13px; color: #b8c4d2; font-variant-numeric: tabular-nums; padding-bottom: 2px; }
+    .t1 .team-details { text-align: right; }
+    .t1 .team-stats { justify-content: flex-end; }
+    .battle { grid-column: 1 / -1; height: 58px; padding: 0 30px 34px; display: flex; align-items: center; }
+    .territory { width: 100%; flex-shrink: 0; --left-share: 52%; position: relative; height: 17px; transition: height 450ms cubic-bezier(.22,1,.36,1); display: flex; background: #0a0e15; isolation: isolate; }
+    .territory-side { position: relative; height: 100%; overflow: hidden; }
+    .territory-side.gen { width: var(--left-share); flex-shrink: 0; background: linear-gradient(90deg, #8f7338, #c7a95f 30%, #ffe2a3 85%, #fff2d2); box-shadow: 0 0 13px #e9c77a4a, 0 0 32px #d5b3671c; transition: width 380ms cubic-bezier(.22,1,.36,1); }
+    .territory-side.t1 { flex: 1; background: linear-gradient(90deg, #ffdedb, #ff8179 13%, #ff4258 55%, #b0243f); box-shadow: 0 0 13px #ff425866, 0 0 32px #ff425825; }
+    .territory-side::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent 30%, #ffffff30 54%, transparent 70%) 0 25% / 180px 2px repeat-x, linear-gradient(90deg, transparent 45%, #ffffff40 62%, transparent 80%) 30px 75% / 250px 1px repeat-x; animation: territory-flow 1.5s linear infinite; }
+    .territory-side.t1::before { animation-direction: reverse; }
+    .territory-side::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: #ffffffa6; box-shadow: 0 0 5px #ffffff50; transform: translateY(-50%); }
+    .territory-side.incoming { animation: territory-arrival 580ms ease-out; }
+    .territory-blend { position: absolute; top: 0; bottom: 0; left: var(--left-share); width: 18px; max-width: 100%; background: linear-gradient(90deg, #fff2d200, #fff0dc99 45%, #ffdedb00); transform: translateX(-50%); filter: blur(2px); z-index: 2; transition: left 380ms cubic-bezier(.22,1,.36,1); pointer-events: none; }
+    @keyframes territory-flow { to { background-position: 180px 25%, 280px 75%; } }
+    @keyframes territory-arrival { 0% { filter: brightness(1); } 30% { filter: brightness(1.3); } 100% { filter: brightness(1); } }
+    .team-stage[data-active] .territory { height: 24px; }
+    .pick-button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; max-width: 330px; margin-top: 23px; border: 0; border-bottom: 1px solid #d5b36755; background: none; color: #e1c481; padding: 11px 0; font-size: 12px; text-align: left; cursor: pointer; }
+    .team-zone.active .pick-button { pointer-events: auto; }
+    .pick-button.t1 { margin-left: auto; color: #fa8493; border-color: #ff425855; }
+    .pick-button:hover { border-color: currentColor; }
+    .pick-odds { font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .pick-odds small { font-size: 10px; margin-left: 2px; }
+    .stake-row-item.is-me { background: #d5b3670e; box-shadow: -7px 0 0 #d5b3670e, 7px 0 0 #d5b3670e; }
+    .t1 .stake-row-item.is-me { background: #ff42580e; box-shadow: -7px 0 0 #ff42580e, 7px 0 0 #ff42580e; }
+    .stake-row-item.is-me .stake-name, .stake-row-item.is-me .stake-value { color: #e8edf4; }
+    .me-tag { flex-shrink: 0; font-size: 8px; font-weight: 600; color: #ddc38b; background: #c8aa6e1a; padding: 0 4px; border-radius: 2px; }
+    .t1 .me-tag { color: #fa8493; background: #ff42581a; }
+    .bet-dialog { width: 500px; max-width: calc(100vw - 28px); max-height: calc(100dvh - 32px); padding: 0; background: transparent; color: var(--text); border: 0; overflow: visible; }
+    .modal-body { padding: 25px; background: #111923; border: 1px solid #4b4a40; border-radius: 12px; box-shadow: 0 25px 100px #0008; max-height: calc(100dvh - 152px); overflow-y: auto; }
+    .modal-attachment { height: 108px; margin-top: 12px; }
+    .bet-dialog::backdrop { background: #03070cbf; backdrop-filter: blur(6px); }
+    .dialog-header { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 24px; }
+    .dialog-header p { font-size: 10px; color: var(--gold); letter-spacing: .1em; }
+    .dialog-header h2 { font-size: 19px; margin-top: 4px; }
+    .close-button { width: 34px; height: 34px; color: #aab6c6; background: #1b2634; border: 1px solid #344152; border-radius: 50%; font-size: 23px; line-height: 1; }
+    .bet-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .bet-heading h2 { font-size: 15px; letter-spacing: -.4px; }
+    .wallet { font-size: 11px; color: #94a3b5; }
+    .wallet strong { color: #e4eaf3; margin-left: 7px; font-size: 12px; font-variant-numeric: tabular-nums; }
+    .bet-options { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+    .choice { position: relative; cursor: pointer; }
+    .choice input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .choice-body { min-height: 74px; border: 1px solid #303b49; background: #161f2b; border-radius: 8px; padding: 15px 18px; display: flex; align-items: center; gap: 12px; transition: border-color .15s, background .15s; }
+    .choice:hover .choice-body { border-color: #657083; }
+    .choice input:checked + .choice-body { border-color: var(--gold); background: #c8aa6e0b; }
+    .choice input:focus-visible + .choice-body { outline: 2px solid var(--gold); outline-offset: 4px; }
+    .choice-emblem { font-weight: 850; font-size: 12px; width: 36px; text-align: center; }
+    .choice-emblem.gen { color: #d3b775; }
+    .choice-emblem.t1 { color: #f97480; font-style: italic; font-size: 18px; }
+    .choice-name { min-width: 0; font-size: 12px; font-weight: 600; }
+    .choice-name small { display: block; color: #92a1b3; font-weight: 400; font-size: 10px; margin-top: 2px; }
+    .check { margin-left: auto; width: 19px; height: 19px; border: 1px solid #4b596b; border-radius: 50%; display: grid; place-items: center; font-size: 11px; color: transparent; }
+    .choice input:checked + .choice-body .check { color: #0b1017; background: var(--gold); border-color: var(--gold); }
+    .stake-row { display: flex; flex-direction: column; gap: 18px; margin-top: 23px; }
+    .amount-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+    .amount-heading .field-label { margin-bottom: 0; }
+    .field-label { display: block; font-size: 11px; color: #aab5c4; margin-bottom: 8px; }
+    .amount-field { display: flex; align-items: center; border: 1px solid #354152; background: #131c28; border-radius: 7px; padding: 9px 14px; gap: 12px; }
+    .amount-field:focus-within { border-color: var(--gold); }
+    .amount-field input { width: 100%; min-width: 0; color: #edf2f8; background: none; border: 0; font-size: 23px; font-weight: 650; font-variant-numeric: tabular-nums; outline: none; }
+    .amount-field span { color: #8d9caf; font-size: 12px; }
+    .quick-amounts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+    .quick-amounts button { border: 1px solid #2d3847; background: #151e29; color: #a6b2c4; font-size: 10px; border-radius: 5px; padding: 7px 3px; }
+    .quick-amounts button:hover { color: var(--gold); border-color: #c8aa6e66; }
+    .return-box { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 10px 0 0; }
+    .return-box .caption { font-size: 11px; color: #9aa8ba; }
+    .return-box .caption span { display: block; font-size: 9px; color: #8594a9; margin-top: 3px; }
+    .return-amount { font-size: 27px; font-weight: 700; color: #e3c992; margin: 7px 0 1px; letter-spacing: -.6px; font-variant-numeric: tabular-nums; }
+    .return-amount small { font-size: 13px; font-weight: 450; margin-left: 4px; }
+    .bet-notice { height: 108px; padding: 16px 18px; overflow-y: auto; background: #121b27; border: 1px solid #344152; border-radius: 9px; box-shadow: 0 12px 35px #0005; }
+    .notice-title { display: block; font-size: 12px; font-weight: 650; color: #bcc9da; margin-bottom: 5px; }
+    .notice-text { font-size: 11px; color: #95a5bb; line-height: 1.8; }
+    .bet-notice[data-state="warning"] { background: #21191c; border-color: #bc735d66; }
+    .bet-notice[data-state="warning"] .notice-title { color: #f1b4a7; }
+    .bet-notice[data-state="success"] { background: #1a201b; border-color: #91ae6850; }
+    .bet-notice[data-state="success"] .notice-title { color: #bdd59f; }
+    .bet-notice[data-state="error"] { border-color: #bc735d66; }
+    .confirm { width: 100%; margin-top: 22px; border: 1px solid #e2c58b; border-radius: 7px; padding: 14px; color: #11161e; background: var(--gold); font-size: 13px; font-weight: 750; }
+    .confirm:hover { background: #d6b97e; }
+    .confirm:disabled { cursor: not-allowed; color: #87919d; background: #25303c; border-color: #354253; }
+
+    @media (max-width: 700px) {
+      .canvas { padding: 24px 16px; }
+      .match-header { margin: 0 40px; padding: 24px 0 0; }
+      .event-name { font-size: 10px; }
+      .event-round { font-size: 9px; }
+      .open { font-size: 9px; padding: 4px 8px; }
+      .faceoff { grid-template-columns: 1fr 70px 1fr; padding: 30px 27px 28px; }
+      .team-logo { font-size: 54px; letter-spacing: -3px; }
+      .t1 .team-logo { font-size: 70px; }
+      .fixture h1 { font-size: 17px; }
+      .fixture time { font-size: 8px; }
+      .team-stage { margin: 0 10px; }
+      .team-zone { height: 300px; padding: 24px 14px; }
+      .stake-ranking { inset: 24px 14px; }
+      .rank-heading { margin-bottom: 10px; }
+      .rank-heading h2 { font-size: 8px; letter-spacing: 0; }
+      .rank-heading span { display: none; }
+      .stake-meta { display: grid; grid-template-columns: 13px minmax(0, 1fr); column-gap: 4px; row-gap: 2px; }
+      .stake-place { grid-column: 1; grid-row: 1; }
+      .stake-user { grid-column: 2; grid-row: 1; gap: 4px; }
+      .stake-name { font-size: 10px; line-height: 18px; }
+      .cheer-seal { width: 16px; height: 18px; font-size: 6px; }
+      .stake-value { grid-column: 2; grid-row: 2; font-size: 9px; line-height: 11px; margin: 0; }
+      .t1 .stake-meta { grid-template-columns: minmax(0, 1fr) 13px; }
+      .t1 .stake-place { grid-column: 2; text-align: right; }
+      .t1 .stake-user { grid-column: 1; justify-content: flex-end; }
+      .t1 .stake-value { grid-column: 1; text-align: right; margin: 0; }
+      .stake-chart { padding-left: 17px; gap: 4px; margin-top: 2px; }
+      .t1 .stake-chart { padding-right: 17px; }
+      .stake-percent { width: 29px; font-size: 7px; }
+      .stake-row-item { margin-bottom: 4px; }
+      .team-name { font-size: 24px; }
+      .team-region { font-size: 8px; }
+      .team-stats { flex-direction: column; align-items: flex-start; gap: 15px; margin-top: 20px; }
+      .t1 .team-stats { align-items: flex-end; }
+      .team-share { font-size: 43px; }
+      .team-pool { font-size: 11px; }
+      .pick-button { font-size: 11px; margin-top: 14px; gap: 5px; }
+      .pick-odds { font-size: 10px; }
+      .battle { height: 58px; padding: 0 14px 34px; }
+      .modal-body { padding: 21px; }
+
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="canvas">
+    <article class="arena" aria-label="Gen.G 대 T1 경기">
+      <header class="match-header" aria-label="이벤트와 대회 단계"><div class="event"><div><p class="event-name">2026 WORLDS</p><p class="event-round">스위스 스테이지 · BO3</p><time class="match-date" datetime="2026-10-08T19:00:00+09:00">2026.10.08 (목) · 19:00<span>한국 시간</span></time></div></div></header>
+      <div class="match-surface">
+      <div class="faceoff">
+        <button class="logo-toggle gen" type="button" data-team-trigger="GEN" aria-expanded="false" aria-controls="details-gen" aria-label="Gen.G 정보 펼치기"><span class="team-logo" aria-hidden="true">GEN</span></button>
+        <div class="fixture"><h1>VS</h1></div>
+        <button class="logo-toggle t1" type="button" data-team-trigger="T1" aria-expanded="false" aria-controls="details-t1" aria-label="T1 정보 펼치기"><span class="team-logo" aria-hidden="true">T1</span></button>
+      </div>
+      <div class="team-stage" id="team-stage">
+        <div class="battle">
+          <div class="territory" id="territory" role="img" aria-label="베팅 포인트 비중: Gen.G 52%, T1 48%"><span class="territory-side gen" aria-hidden="true"></span><span class="territory-side t1" aria-hidden="true"></span><span class="territory-blend" aria-hidden="true"></span></div>
+        </div>
+        <section class="team-zone gen" data-team="GEN" aria-label="Gen.G 팀 영역">
+          <div class="stake-ranking" id="ranking-gen"><div class="rank-heading"><h2>GEN · 베팅 지분 TOP 5</h2><span>팀 내 지분</span></div><ol class="stake-list" id="top-gen" aria-label="GEN 베팅 지분 상위 5명"></ol></div>
+          <div class="team-details" id="details-gen" inert>
+            <p class="team-region">LCK · KOREA</p><h2 class="team-name">Gen.G</h2>
+            <div class="team-stats"><p class="team-share"><span id="share-gen">52</span><small>%</small><span class="stat-caption">현재 우위</span></p><p class="team-pool"><span id="pool-gen">5,408,000 P</span><span class="stat-caption">쌓인 포인트</span></p></div>
+            <button class="pick-button gen" type="button" data-pick="GEN"><span>이 팀에 베팅하기 ↗</span><span class="pick-odds" aria-label="예상 배당"><span id="odds-gen">1.92</span><small>×</small></span></button>
+          </div>
+        </section>
+        <section class="team-zone t1" data-team="T1" aria-label="T1 팀 영역">
+          <div class="stake-ranking" id="ranking-t1"><div class="rank-heading"><h2>T1 · 베팅 지분 TOP 5</h2><span>팀 내 지분</span></div><ol class="stake-list" id="top-t1" aria-label="T1 베팅 지분 상위 5명"></ol></div>
+          <div class="team-details" id="details-t1" inert>
+            <p class="team-region">LCK · KOREA</p><h2 class="team-name">T1</h2>
+            <div class="team-stats"><p class="team-share"><span id="share-t1">48</span><small>%</small><span class="stat-caption">현재 우위</span></p><p class="team-pool"><span id="pool-t1">4,992,000 P</span><span class="stat-caption">쌓인 포인트</span></p></div>
+            <button class="pick-button t1" type="button" data-pick="T1"><span>이 팀에 베팅하기 ↗</span><span class="pick-odds" aria-label="예상 배당"><span id="odds-t1">2.08</span><small>×</small></span></button>
+          </div>
+        </section>
+
+      </div>
+      </div>
+    </article>
+  </main>
+  <dialog class="bet-dialog" id="bet-dialog" aria-labelledby="dialog-title">
+    <div class="modal-body">
+    <div class="dialog-header"><div><p>2026 WORLDS · 스위스 스테이지 · BO3</p><h2 id="dialog-title">승리 팀에 베팅</h2></div><button type="button" class="close-button" aria-label="베팅 창 닫기">×</button></div>
+    <section class="bet-section" aria-labelledby="bet-title">
+        <div class="bet-heading"><h2 id="bet-title">누가 승리할까요?</h2></div>
+        <div class="bet-options" role="group" aria-label="승리 예측 팀">
+          <label class="choice"><input type="radio" id="pick-gen" name="team" value="GEN"><span class="choice-body"><span class="choice-emblem gen">GEN</span><span class="choice-name">Gen.G 승리<small>예상 1.92×</small></span><span class="check" aria-hidden="true">✓</span></span></label>
+          <label class="choice"><input type="radio" id="pick-t1" name="team" value="T1"><span class="choice-body"><span class="choice-emblem t1">T1</span><span class="choice-name">T1 승리<small>예상 2.08×</small></span><span class="check" aria-hidden="true">✓</span></span></label>
+        </div>
+        <div class="stake-row">
+          <div><div class="amount-heading"><label class="field-label" for="amount">베팅 금액</label><p class="wallet">보유 포인트<strong id="dialog-wallet">128,500 P</strong></p></div><div class="amount-field"><input id="amount" type="text" inputmode="numeric" autocomplete="off" maxlength="24" value="5,000" aria-describedby="bet-notice"><span>P</span></div><div class="quick-amounts" aria-label="금액 바로 선택"><button type="button" data-amount="1000">1,000</button><button type="button" data-amount="5000">5,000</button><button type="button" data-amount="10000">10,000</button><button type="button" data-amount="50000">50,000</button></div></div>
+          <div class="return-box"><p class="caption">예상 수령액<span>원금 포함</span></p><p class="return-amount" id="return-amount" aria-live="polite">—<small>P</small></p></div>
+        </div>
+        <button class="confirm" id="confirm" type="button" disabled>승리 팀을 선택해 주세요</button>
+
+    </section>
+    </div>
+    <div class="modal-attachment">
+      <div class="bet-notice" id="bet-notice" role="status" aria-live="polite" aria-atomic="true"><strong class="notice-title" id="notice-title">베팅 금액을 확인해 주세요</strong><p class="notice-text" id="feedback">선택한 팀의 승리에 베팅할 포인트를 입력해 주세요.</p></div>
+    </div>
+  </dialog>
+  <script>
+    // Interaction state is held in memory; there is no server persistence.
+    const amount = document.querySelector('#amount');
+    const confirmButton = document.querySelector('#confirm');
+    const returnAmount = document.querySelector('#return-amount');
+    const notice = document.querySelector('#bet-notice');
+    const noticeTitle = document.querySelector('#notice-title');
+    const feedback = document.querySelector('#feedback');
+    const dialog = document.querySelector('#bet-dialog');
+    const format = value => new Intl.NumberFormat('ko-KR').format(value);
+    const initialPools = { GEN: 5408000, T1: 4992000 };
+    const initialStakes = {
+      GEN: [
+        { name: '역배의신', amount: 1250000, seal: 'GEN' }, { name: '젠지우승가자', amount: 950000, seal: 'GEN' },
+        { name: '바론앞5대5', amount: 740000 }, { name: '쵸비의CS', amount: 510000, seal: 'GEN' },
+        { name: '한타는끝까지', amount: 380000 }, { name: '오늘도젠지', amount: 260000, seal: 'GEN' },
+        { name: '미드차이', amount: 190000 }, { name: '용앞에서보자', amount: 130000 },
+        { name: '이번엔정배', amount: 85000 }, { name: '끝까지간다', amount: 50000 }
+      ],
+      T1: [
+        { name: '페이커의오른팔', amount: 1180000, seal: 'T1' }, { name: '티원화이팅', amount: 890000, seal: 'T1' },
+        { name: '월즈의기억', amount: 650000, seal: 'T1' }, { name: '끝까지믿는다', amount: 470000 },
+        { name: '라인전장인', amount: 340000, seal: 'T1' }, { name: '한타설계자', amount: 220000 },
+        { name: '불사대마왕', amount: 160000, seal: 'T1' }, { name: '넥서스까지', amount: 110000 },
+        { name: '마지막한타', amount: 80000 }, { name: '끝까지간다', amount: 50000 }
+      ]
+    };
+    let stakes = structuredClone(initialStakes);
+    function renderRankings() {
+      for (const team of ['GEN', 'T1']) {
+        const sorted = [...stakes[team]].sort((a, b) => b.amount - a.amount);
+        for (const scope of ['top']) {
+          const list = document.querySelector(`#${scope}-${team.toLowerCase()}`);
+          list.replaceChildren();
+          const myRow = sorted.find(row => row.isMe);
+          const visible = sorted.slice(0, 5);
+          if (myRow && !visible.includes(myRow)) visible.splice(4, 1, myRow);
+          const heading = document.querySelector(`#ranking-${team.toLowerCase()} .rank-heading`);
+          heading.querySelector('h2').textContent = `${team} · 베팅 지분${myRow ? '' : ' TOP 5'}`;
+          heading.querySelector('span').textContent = myRow && sorted.indexOf(myRow) >= 5 ? '상위 4명 + 내 순위' : '팀 내 지분';
+          visible.forEach(row => {
+            const rank = sorted.indexOf(row) + 1;
+            const share = row.amount / pools[team] * 100;
+            const item = document.createElement('li');
+            item.className = `stake-row-item${row.isMe ? ' is-me' : ''}`;
+            item.style.setProperty('--stake-share', `${share}%`);
+            item.innerHTML = `<div class="stake-meta"><span class="stake-place">${rank}</span><span class="stake-user"></span><span class="stake-value">${format(row.amount)} P</span></div><div class="stake-chart"><span class="stake-track"><span class="stake-fill"></span></span><span class="stake-percent">${share.toFixed(1)}%</span></div>`;
+            const user = item.querySelector('.stake-user');
+            if (row.seal) {
+              const seal = document.createElement('span');
+              seal.className = `cheer-seal ${row.seal.toLowerCase()}`;
+              seal.textContent = row.seal;
+              seal.setAttribute('role', 'img');
+              seal.setAttribute('aria-label', `2026 Worlds ${row.seal} 응원 인장`);
+              seal.title = `2026 Worlds ${row.seal} 응원 인장`;
+              user.append(seal);
+            }
+            const name = document.createElement('span');
+            name.className = 'stake-name';
+            name.textContent = row.name;
+            name.title = row.name;
+            user.append(name);
+            if (row.isMe) {
+              const tag = document.createElement('span');
+              tag.className = 'me-tag';
+              tag.textContent = '나';
+              user.append(tag);
+              item.setAttribute('aria-label', `내 베팅, ${rank}위, ${format(row.amount)} 포인트, 팀 내 지분 ${share.toFixed(1)}%`);
+            }
+            list.append(item);
+          });
+        }
+      }
+    }
+    let pools = { ...initialPools };
+    let trigger = null;
+    let balance = 128500;
+    let placedBet = null;
+    const territory = document.querySelector('#territory');
+    const stage = document.querySelector('#team-stage');
+    const surface = document.querySelector('.match-surface');
+    const zones = [...document.querySelectorAll('.team-zone')];
+    let collapseTimer;
+    let pointerType = null;
+    surface.addEventListener('pointerenter', event => { pointerType = event.pointerType; });
+    function scheduleCollapse() {
+      clearTimeout(collapseTimer);
+      collapseTimer = setTimeout(() => {
+        if (!surface.contains(document.activeElement) && !surface.matches(':hover') && !dialog.open) expandTeam(null);
+      }, 200);
+    }
+    function expandTeam(team) {
+      clearTimeout(collapseTimer);
+      if (team) stage.dataset.active = team;
+      else delete stage.dataset.active;
+      zones.forEach(zone => {
+        const active = zone.dataset.team === team;
+        zone.classList.toggle('active', active);
+        document.querySelector(`[data-team-trigger="${zone.dataset.team}"]`).setAttribute('aria-expanded', String(active));
+        zone.querySelector('.team-details').inert = !active;
+        zone.querySelector('.stake-ranking').setAttribute('aria-hidden', String(Boolean(team)));
+      });
+    }
+    zones.forEach(zone => {
+      zone.addEventListener('focusin', () => expandTeam(zone.dataset.team));
+      const logo = document.querySelector(`[data-team-trigger="${zone.dataset.team}"]`);
+      logo.addEventListener('focusin', () => expandTeam(zone.dataset.team));
+      document.querySelector(`[data-team-trigger="${zone.dataset.team}"]`).addEventListener('click', () => expandTeam(zone.dataset.team));
+    });
+    // Use the same fixed rectangle for entering, moving, and leaving.
+    // Its midpoint stays fixed even when the visual team columns expand.
+    function previewAtPointer(event) {
+      if (event.pointerType !== 'mouse' || dialog.open) return;
+      if (surface.contains(document.activeElement) && (event.type === 'pointerenter' || !(event.movementX || event.movementY))) return;
+      const bounds = surface.getBoundingClientRect();
+      expandTeam(event.clientX < bounds.left + bounds.width / 2 ? 'GEN' : 'T1');
+    }
+    surface.addEventListener('pointerenter', previewAtPointer);
+    surface.addEventListener('pointermove', previewAtPointer);
+    surface.addEventListener('pointerleave', event => {
+      if (event.pointerType !== 'mouse' || dialog.open) return;
+      if (surface.contains(document.activeElement)) document.activeElement.blur();
+      expandTeam(null);
+    });
+    surface.addEventListener('focusout', event => {
+      if (!surface.contains(event.relatedTarget)) scheduleCollapse();
+    });
+    surface.addEventListener('keydown', event => {
+      if (event.key === 'Escape') { document.activeElement?.blur(); expandTeam(null); }
+    });
+    function updatePools() {
+      const total = pools.GEN + pools.T1;
+      const share = pools.GEN / total * 100;
+      const left = Number(share.toFixed(1));
+      const right = Number((100 - share).toFixed(1));
+      territory.style.setProperty('--left-share', `${share}%`);
+      territory.setAttribute('aria-label', `베팅 포인트 비중: Gen.G ${left}%, T1 ${right}%`);
+      document.querySelector('#share-gen').textContent = left;
+      document.querySelector('#share-t1').textContent = right;
+      document.querySelector('#pool-gen').textContent = `${format(pools.GEN)} P`;
+      document.querySelector('#pool-t1').textContent = `${format(pools.T1)} P`;
+      for (const team of ['GEN', 'T1']) {
+        const odds = (total / pools[team]).toFixed(2);
+        const suffix = team.toLowerCase();
+        document.querySelector(`#odds-${suffix}`).textContent = odds;
+        document.querySelector(`#pick-${suffix} + .choice-body .choice-name small`).textContent = `예상 ${odds}×`;
+
+      }
+      renderRankings();
+      update();
+    }
+    function update() {
+      const team = document.querySelector('input[name="team"]:checked')?.value;
+      const stake = Number(amount.value.replaceAll(',', '') || NaN);
+      const losesSeal = team === 'GEN' && !placedBet;
+      confirmButton.setAttribute('aria-describedby', 'bet-notice');
+      const valid = Number.isSafeInteger(stake) && stake > 0 && (Boolean(placedBet) || stake <= balance);
+      confirmButton.disabled = Boolean(placedBet) || !team || !valid;
+      confirmButton.textContent = placedBet ? '베팅 완료' : !team ? '승리 팀을 선택해 주세요' : !valid ? `1~${format(balance)} P의 정수 금액을 입력해 주세요` : `${team === 'GEN' ? 'Gen.G' : 'T1'} 승리에 ${format(stake)} P 베팅`;
+      returnAmount.replaceChildren(document.createTextNode(team && valid ? format(Math.floor(stake * (pools.GEN + pools.T1 + (placedBet ? 0 : stake)) / (pools[team] + (placedBet ? 0 : stake)))) : '—'));
+      const unit = document.createElement('small');
+      unit.textContent = 'P';
+      returnAmount.append(unit);
+      notice.dataset.state = placedBet ? 'success' : !valid ? 'error' : losesSeal ? 'warning' : 'info';
+      noticeTitle.textContent = placedBet ? '베팅 완료' : !valid ? '베팅 금액을 확인해 주세요' : losesSeal ? 'T1 응원 인장을 잃습니다' : '베팅 금액을 확인해 주세요';
+      feedback.textContent = placedBet
+        ? `${placedBet.team === 'GEN' ? 'Gen.G' : 'T1'} 승리에 ${format(placedBet.amount)} P를 베팅했습니다.${placedBet.team === 'GEN' ? ' T1 응원 인장은 박탈되었으며 응원 계약은 유지됩니다.' : ''}`
+        : !valid ? `1~${format(balance)} P의 정수 금액을 입력해 주세요.${losesSeal ? ' Gen.G에 베팅하면 T1 응원 인장을 잃습니다.' : ''}`
+        : losesSeal ? 'Gen.G에 베팅하면 이번 이벤트의 T1 응원 인장을 잃습니다. 응원 계약은 유지되며, 인장은 복구되지 않습니다.'
+        : '선택한 팀과 베팅 금액을 확인한 뒤 베팅을 확정해 주세요.';
+    }
+    document.querySelectorAll('[data-pick]').forEach(button => button.addEventListener('click', () => {
+      trigger = button;
+      document.querySelector((placedBet?.team || button.dataset.pick) === 'GEN' ? '#pick-gen' : '#pick-t1').checked = true;
+      update();
+      dialog.showModal();
+    }));
+    document.querySelector('.close-button').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => {
+      const rect = dialog.getBoundingClientRect();
+      if (event.target === dialog && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) dialog.close();
+    });
+    dialog.addEventListener('close', () => {
+      trigger?.focus();
+      if (pointerType === 'mouse' && !surface.matches(':hover')) {
+        if (document.activeElement?.closest('.team-details')) document.activeElement.blur();
+        expandTeam(null);
+      }
+    });
+    document.querySelectorAll('input[name="team"]').forEach(input => input.addEventListener('change', update));
+    let lastFormattedAmount = amount.value;
+    amount.addEventListener('input', () => {
+      const raw = amount.value;
+      const caret = amount.selectionStart ?? raw.length;
+      if (!/^[0-9,]*$/.test(raw)) {
+        amount.value = lastFormattedAmount;
+        amount.setSelectionRange(Math.min(caret, amount.value.length), Math.min(caret, amount.value.length));
+        update();
+        return;
+      }
+      const digitsBeforeCaret = raw.slice(0, caret).replaceAll(',', '').length;
+      const digits = raw.replaceAll(',', '').replace(/^0+(?=\d)/, '');
+      amount.value = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+      let nextCaret = 0;
+      let seen = 0;
+      while (nextCaret < amount.value.length && seen < digitsBeforeCaret) {
+        if (amount.value[nextCaret] !== ',') seen++;
+        nextCaret++;
+      }
+      amount.setSelectionRange(nextCaret, nextCaret);
+      lastFormattedAmount = amount.value;
+      update();
+    });
+    document.querySelectorAll('[data-amount]').forEach(button => button.addEventListener('click', () => { amount.value = format(Number(button.dataset.amount)); lastFormattedAmount = amount.value; update(); }));
+    confirmButton.addEventListener('click', () => {
+      if (confirmButton.disabled) return;
+      const team = document.querySelector('input[name="team"]:checked').value;
+      const stake = Number(amount.value.replaceAll(',', '') || NaN);
+      placedBet = { team, amount: stake };
+      balance -= stake;
+      pools[team] += stake;
+      stakes[team].push({ name: '오늘의예측가', isMe: true, amount: stake, ...(team === 'T1' ? { seal: 'T1' } : {}) });
+      document.querySelector('#dialog-wallet').textContent = `${format(balance)} P`;
+      amount.disabled = true;
+      document.querySelectorAll('input[name="team"], [data-amount]').forEach(control => control.disabled = true);
+      document.querySelectorAll('[data-pick] > span:first-child').forEach(label => label.textContent = '내 베팅 보기 ↗');
+      updatePools();
+    });
+    updatePools();
+  </script>
+</body>
+</html>

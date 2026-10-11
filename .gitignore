@@ -25,3 +25,6 @@ logs/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Third-party VFX for the local design preview (no standalone redistribution)
+docs/2.design/assets/dolkyns/

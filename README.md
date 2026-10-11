@@ -17,6 +17,7 @@
 4. [이벤트 응원과 인장](docs/0.concept/3.event-cheering.md)
 5. [포인트 경제](docs/0.concept/2.point-economy.md)
 6. [회원·권한 요구사항](docs/1.requirements/1.member.md)
+7. [디자인 컨셉트 초안](docs/2.design/0.intro.md)
 
 문서는 서비스 방향과 규칙을 설명합니다. 추가 베팅 허용 여부, 포인트 지급량과 대출 조건 등은 아직 확정되지 않았습니다.
 
