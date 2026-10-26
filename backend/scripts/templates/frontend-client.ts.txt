@@ -1,0 +1,206 @@
+
+export type MatchFilters = {
+  season_id?: string; event_id?: string; status?: MatchOut['status']; limit?: number;
+  offset?: number; api_source?: string; is_demo?: boolean; team_id?: string;
+  date?: string; unscheduled?: boolean;
+};
+export type PublicResponseMetadata = {
+  path: string; stale: boolean; ageSeconds: number | null; requestId: string | null;
+};
+export class LoLPickApiError extends Error {
+  public outcomeUnknown = false;
+  public status: number;
+  public code: string;
+  public requestId: string | null;
+  public retryAfter: string | null;
+  constructor(status: number, code: string, message: string,
+    requestId: string | null, retryAfter: string | null) {
+    super(message);
+    this.name = 'LoLPickApiError';
+    this.status = status;
+    this.code = code;
+    this.requestId = requestId;
+    this.retryAfter = retryAfter;
+  }
+}
+/** Keep UI commits synchronous. Invalidate on account/session change and component disposal. */
+export function createAccountResponseGuard() {
+  let generation = 0;
+  return {
+    changeAccount: () => { generation += 1; },
+    async run<T>(operation: () => Promise<T>, apply: (value: T) => void, report?: (error: unknown) => void) {
+      const started = generation;
+      try {
+        const value = await operation();
+        if (generation !== started) return { kind: 'discarded' as const };
+        apply(value);
+        return { kind: 'applied' as const };
+      } catch (error) {
+        if (generation !== started) return { kind: 'discarded' as const };
+        report?.(error);
+        return { kind: 'failed' as const, error };
+      }
+    }
+  };
+}
+/** Browser client. apiRoot ends with /api/v1. Tokens stay with your auth adapter. */
+export function createLoLPickApi(options: {
+  apiRoot: string; getAccessToken?: () => string | null | Promise<string | null>;
+  fetcher?: typeof fetch; timeoutMs?: number; tokenTimeoutMs?: number;
+  /** Stable account/session identity, never the rotating access token. */
+  getAuthScope?: () => string | null;
+  onPublicMetadata?: (metadata: PublicResponseMetadata) => void;
+}) {
+  const root = new URL(options.apiRoot, globalThis.location?.origin ?? 'http://localhost');
+  if (!['http:', 'https:'].includes(root.protocol) || root.username || root.password || root.search || root.hash)
+    throw new Error('Use a clean HTTP(S) API root.');
+  if (root.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(root.hostname))
+    throw new Error('Use HTTPS outside localhost.');
+  if (!root.pathname.replace(/\/$/, '').endsWith('/api/v1'))
+    throw new Error('API root must end with /api/v1.');
+  const base = root.href.replace(/\/$/, '');
+  const fetcher = options.fetcher ?? fetch;
+  const httpBudget = options.timeoutMs ?? 15000;
+  const tokenBudget = options.tokenTimeoutMs ?? 5000;
+  if (![httpBudget, tokenBudget].every(v => Number.isFinite(v) && v > 0 && v <= 2147483647))
+    throw new Error('Timeouts must be positive finite milliseconds within the timer range.');
+  let authGeneration = 0;
+  const inFlight = new Map<string, Promise<unknown>>(); // public, in-flight only; no persisted cache
+  const query = (values: Record<string, string | number | boolean | undefined>) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(values)) if (value !== undefined) params.set(key, String(value));
+    params.sort(); const suffix = params.toString(); return suffix ? '?' + suffix : '';
+  };
+  const id = (value: string) => {
+    if (typeof value !== 'string' || !value.trim() || value !== value.trim() ||
+      value === '.' || value === '..' || /[\u0000-\u001f\u007f]/.test(value))
+      throw new LoLPickApiError(0, 'client_invalid_id', '목록에서 받은 공개 ID를 사용하세요.', null, null);
+    return encodeURIComponent(value);
+  };
+  async function execute<T>(method: 'GET' | 'POST', path: string, auth = false, body?: unknown, operationId?: string): Promise<T> {
+    const headers: Record<string, string> = {};
+    const generation = authGeneration;
+    const scope = auth ? options.getAuthScope?.() : undefined;
+    let dispatched = false;
+    let requestId: string | null = null, retryAfter: string | null = null;
+    const assertScope = () => {
+      if (auth && (authGeneration !== generation || options.getAuthScope?.() !== scope)) {
+        const error = new LoLPickApiError(0, 'client_auth_changed', '계정이 변경되어 이전 요청의 결과를 표시하지 않습니다.', requestId, retryAfter);
+        error.outcomeUnknown = method === 'POST' && dispatched;
+        throw error;
+      }
+    };
+    // Snapshot the submitted body before waiting for the token provider.
+    const encodedBody = body === undefined ? undefined : JSON.stringify(body);
+    if (auth) {
+      let tokenTimer: ReturnType<typeof setTimeout> | undefined;
+      let token: string | null | undefined;
+      try {
+        token = await Promise.race([
+          Promise.resolve().then(() => { assertScope(); return options.getAccessToken?.(); }),
+          new Promise<never>((_, reject) => { tokenTimer = setTimeout(() => reject(
+            new LoLPickApiError(0, 'client_token_timeout', '로그인 정보 조회 시간이 초과되었습니다.', null, null)
+          ), tokenBudget); })
+        ]);
+      } catch (error) { assertScope(); throw error; }
+      finally { clearTimeout(tokenTimer); }
+      assertScope();
+      if (!token) throw new LoLPickApiError(401, 'client_token_missing', 'Google 로그인 후 연결하세요.', null, null);
+      headers.Authorization = 'Bearer ' + token;
+    }
+    if (operationId) headers['Idempotency-Key'] = operationId;
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    const timeout = new AbortController();
+    const timer = setTimeout(() => timeout.abort(), httpBudget);
+    try {
+      assertScope();
+      dispatched = true;
+      const response = await fetcher(base + path, { method, headers,
+        body: encodedBody, signal: timeout.signal,
+        credentials: 'omit', redirect: 'error', cache: 'no-store' });
+      requestId = response.headers.get('X-Request-ID');
+      retryAfter = response.headers.get('Retry-After');
+      assertScope();
+      let content: unknown = null;
+      let validJson = response.status === 204;
+      try {
+        if (response.status !== 204) {
+          const text = await response.text();
+          try { content = JSON.parse(text); validJson = true; } catch { /* nginx can return HTML errors */ }
+        }
+      } catch {
+        // A failed error-body read must not hide an HTTP error we already received.
+        if (response.ok) throw new LoLPickApiError(response.status, 'response_body_unavailable',
+          '응답을 끝까지 받지 못했습니다. 쓰기 결과는 동일한 작업 키로 확인하세요.', requestId, retryAfter);
+      }
+      assertScope();
+      if (!response.ok) {
+        const detail = content && typeof content === 'object' && 'detail' in content
+          ? (content as {detail?: {code?: unknown; message?: unknown}}).detail : undefined;
+        throw new LoLPickApiError(response.status, typeof detail?.code === 'string' ? detail.code : 'http_error',
+          typeof detail?.message === 'string' ? detail.message : '요청을 처리할 수 없습니다.',
+          requestId, retryAfter);
+      }
+      if (!validJson) throw new LoLPickApiError(response.status, 'invalid_response',
+        '서버 응답 형식이 올바르지 않습니다. 쓰기 결과는 동일한 작업 키로 확인하세요.', requestId, retryAfter);
+      if (!validSuccessResponse(method, path, response.status, content))
+        throw new LoLPickApiError(response.status, 'invalid_response',
+          '응답 필드가 API 계약과 일치하지 않습니다. 쓰기 결과는 동일한 작업 키로 확인하세요.', requestId, retryAfter);
+      if (!auth) {
+        const age = response.headers.get('X-Data-Age-Seconds');
+        const ageSeconds = age !== null && /^\d+$/.test(age) && Number.isSafeInteger(Number(age)) ? Number(age) : null;
+        options.onPublicMetadata?.({path, stale: response.headers.get('X-Data-Stale') === '1', ageSeconds, requestId});
+      }
+      return content as T;
+    } catch (error) {
+      assertScope();
+      const wrapped = error instanceof LoLPickApiError ? error : new LoLPickApiError(0,
+        timeout.signal.aborted ? 'client_timeout' : 'client_network_error',
+        '응답을 확인하지 못했습니다. 쓰기 요청은 원래 입력과 작업 키를 보존하세요.', requestId, retryAfter);
+      if (method === 'POST' && dispatched && (wrapped.status === 0 || wrapped.status >= 500 ||
+          wrapped.code === 'invalid_response' || wrapped.code === 'response_body_unavailable')) wrapped.outcomeUnknown = true;
+      throw wrapped;
+    } finally { clearTimeout(timer); }
+  }
+  function publicGet<T>(path: string): Promise<T> {
+    const existing = inFlight.get(path); if (existing) return existing as Promise<T>;
+    const promise = execute<T>('GET', path).finally(() => inFlight.delete(path));
+    inFlight.set(path, promise); return promise;
+  }
+  const requiredKey = (key: string) => {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key))
+      throw new Error('Idempotency-Key must be a UUID. Keep the same key when retrying the same action.');
+    return key;
+  };
+  return {
+    /** Call BEFORE changing account/session or clearing private state. Does not roll back a dispatched write. */
+    invalidateAuth: () => { authGeneration += 1; },
+    health: () => publicGet<HealthOut>('/health'),
+    ready: () => publicGet<ReadyOut>('/ready'),
+    teams: (seasonId?: string) => publicGet<TeamOut[]>('/teams' + query({season_id: seasonId})),
+    seasons: (year?: number) => publicGet<SeasonOut[]>('/seasons' + query({year})),
+    events: (year?: number) => publicGet<SeasonOut[]>('/events' + query({year})),
+    event: (eventId: string) => publicGet<EventOut>('/events/' + id(eventId)),
+    matches: (filters: MatchFilters = {}) => publicGet<MatchPage>('/matches' + query(filters)),
+    match: (matchId: string) => publicGet<MatchOut>('/matches/' + id(matchId)),
+    stakeRanking: (matchId: string) => publicGet<StakeRankingOut>('/matches/' + id(matchId) + '/stake-ranking'),
+    registerSession: (key: string) => execute<MemberOut>('POST', '/auth/session', true, undefined, requiredKey(key)),
+    me: (seasonId?: string) => execute<MemberOut>('GET', '/auth/me' + query({season_id: seasonId}), true),
+    logout: async () => { await execute<null>('POST', '/auth/logout', true); },
+    cheer: (seasonId: string) => execute<CheerOut | null>('GET', '/auth/cheer' + query({season_id: seasonId}), true),
+    chooseCheer: (body: CheerRequest, key: string) => execute<CheerOut>('POST', '/auth/cheer', true, body, requiredKey(key)),
+    placeBet: (body: BetRequest, key: string) => execute<BetOut>('POST', '/auth/bets', true, body, requiredKey(key)),
+    bets: (filters: {season_id?: string; limit?: number; offset?: number} = {}) =>
+      execute<BetPage>('GET', '/auth/bets' + query(filters), true),
+    matchContext: (matchId: string) => execute<MatchContextOut>('GET', '/auth/matches/' + id(matchId) + '/context', true),
+    // Server verifies DB member type + MFA. Never infer permissions from UI/user_metadata.
+    admin: {
+      refresh: (seasonId: string) => execute<SyncSummaryOut>('POST', '/admin/seasons/' + id(seasonId) + '/refresh', true),
+      activate: (seasonId: string) => execute<SeasonActivatedOut>('POST', '/admin/seasons/' + id(seasonId) + '/activate', true),
+      finish: (seasonId: string) => execute<SeasonFinishedOut>('POST', '/admin/seasons/' + id(seasonId) + '/finish', true),
+      result: (matchId: string, body: MatchResultRequest) =>
+        execute<SettlementOut>('POST', '/admin/matches/' + id(matchId) + '/result', true, body),
+    }
+  };
+}
+

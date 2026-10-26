@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+logs/
+node_modules/
+
+# Release output and backups must stay outside the deployed source.
+backups/
+archives/
+release/
+*.zip
+*.building

@@ -1,0 +1,717 @@
+{
+  "GET /api/v1/health": {
+    "path": "/health",
+    "body": null,
+    "status": 200,
+    "response": {
+      "status": "ok",
+      "service": "lolpick-backend",
+      "version": "0.14.1"
+    },
+    "responseHeaders": {}
+  },
+  "GET /api/v1/ready": {
+    "path": "/ready",
+    "body": null,
+    "status": 503,
+    "response": {
+      "detail": {
+        "code": "database_unavailable",
+        "message": "잠시 처리할 수 없습니다. 잠시 후 다시 시도해 주세요."
+      }
+    },
+    "responseHeaders": {
+      "cache-control": "no-store",
+      "retry-after": "5"
+    }
+  },
+  "POST /api/v1/auth/session": {
+    "path": "/auth/session",
+    "body": null,
+    "status": 200,
+    "response": {
+      "memberId": "11b5f3ef-0446-4a81-9b7d-d6cb4de06870",
+      "currentPoints": 1000,
+      "currentSeasonId": "s",
+      "availableSeasonIds": [
+        "s"
+      ],
+      "sessionExpiresAt": "2026-10-15T14:15:29.115541Z"
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "GET /api/v1/auth/me": {
+    "path": "/auth/me?season_id=s",
+    "body": null,
+    "status": 200,
+    "response": {
+      "memberId": "11b5f3ef-0446-4a81-9b7d-d6cb4de06870",
+      "currentPoints": 1000,
+      "currentSeasonId": "s",
+      "availableSeasonIds": [
+        "s"
+      ],
+      "sessionExpiresAt": "2026-10-15T14:15:29.115541Z"
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "POST /api/v1/auth/cheer": {
+    "path": "/auth/cheer",
+    "body": {
+      "seasonId": "s",
+      "teamId": "A"
+    },
+    "status": 200,
+    "response": {
+      "id": 1,
+      "seasonId": "s",
+      "teamId": "A",
+      "sealHeld": true,
+      "sealRevokedAt": null,
+      "finalizedAt": null,
+      "cheeringCount": 0,
+      "betrayalCount": 0,
+      "createdAt": "2026-10-15T08:15:29Z"
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "GET /api/v1/auth/cheer": {
+    "path": "/auth/cheer?season_id=s",
+    "body": null,
+    "status": 200,
+    "response": {
+      "id": 1,
+      "seasonId": "s",
+      "teamId": "A",
+      "sealHeld": true,
+      "sealRevokedAt": null,
+      "finalizedAt": null,
+      "cheeringCount": 0,
+      "betrayalCount": 0,
+      "createdAt": "2026-10-15T08:15:29Z"
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "POST /api/v1/auth/bets": {
+    "path": "/auth/bets",
+    "body": {
+      "matchId": "m1",
+      "teamId": "A",
+      "amount": 100
+    },
+    "status": 200,
+    "response": {
+      "id": 2,
+      "seasonId": "s",
+      "matchId": "m1",
+      "teamId": "A",
+      "amount": 100,
+      "status": "pending",
+      "payout": null,
+      "cheerAction": "cheering",
+      "createdAt": "2026-10-15T08:15:29.673024Z",
+      "currentPoints": 900,
+      "cheer": {
+        "id": 1,
+        "seasonId": "s",
+        "teamId": "A",
+        "sealHeld": true,
+        "sealRevokedAt": null,
+        "finalizedAt": null,
+        "cheeringCount": 1,
+        "betrayalCount": 0,
+        "createdAt": "2026-10-15T08:15:29Z"
+      }
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "GET /api/v1/auth/bets": {
+    "path": "/auth/bets?season_id=s&limit=50&offset=0",
+    "body": null,
+    "status": 200,
+    "response": {
+      "items": [
+        {
+          "id": 2,
+          "seasonId": "s",
+          "matchId": "m1",
+          "teamId": "A",
+          "amount": 100,
+          "status": "pending",
+          "payout": null,
+          "cheerAction": "cheering",
+          "createdAt": "2026-10-15T08:15:29.673024Z",
+          "currentPoints": null,
+          "cheer": null
+        }
+      ],
+      "total": 1,
+      "limit": 50,
+      "offset": 0
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "GET /api/v1/auth/matches/{match_id}/context": {
+    "path": "/auth/matches/m1/context",
+    "body": null,
+    "status": 200,
+    "response": {
+      "matchId": "m1",
+      "seasonId": "s",
+      "currentPoints": 900,
+      "cheer": {
+        "id": 1,
+        "seasonId": "s",
+        "teamId": "A",
+        "sealHeld": true,
+        "sealRevokedAt": null,
+        "finalizedAt": null,
+        "cheeringCount": 1,
+        "betrayalCount": 0,
+        "createdAt": "2026-10-15T08:15:29Z"
+      },
+      "bet": {
+        "id": 2,
+        "seasonId": "s",
+        "matchId": "m1",
+        "teamId": "A",
+        "amount": 100,
+        "status": "pending",
+        "payout": null,
+        "cheerAction": "cheering",
+        "createdAt": "2026-10-15T08:15:29.673024Z",
+        "currentPoints": null,
+        "cheer": null
+      },
+      "bettingOpen": true,
+      "eligible": false,
+      "reason": "bet_already_placed",
+      "sessionExpiresAt": "2026-10-15T14:15:29.115541Z",
+      "myRank": 1
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "GET /api/v1/teams": {
+    "path": "/teams?season_id=s",
+    "body": null,
+    "status": 200,
+    "response": [
+      {
+        "id": "A",
+        "name": "A",
+        "region": "",
+        "color": "#64748b",
+        "logo": null,
+        "acronym": null,
+        "location": null,
+        "apiSource": "pandascore"
+      },
+      {
+        "id": "B",
+        "name": "B",
+        "region": "",
+        "color": "#64748b",
+        "logo": null,
+        "acronym": null,
+        "location": null,
+        "apiSource": "pandascore"
+      },
+      {
+        "id": "C",
+        "name": "C",
+        "region": "",
+        "color": "#64748b",
+        "logo": null,
+        "acronym": null,
+        "location": null,
+        "apiSource": "pandascore"
+      },
+      {
+        "id": "D",
+        "name": "D",
+        "region": "",
+        "color": "#64748b",
+        "logo": null,
+        "acronym": null,
+        "location": null,
+        "apiSource": "pandascore"
+      }
+    ],
+    "responseHeaders": {}
+  },
+  "GET /api/v1/seasons": {
+    "path": "/seasons?year=2026",
+    "body": null,
+    "status": 200,
+    "response": [
+      {
+        "id": "s",
+        "slug": "worlds",
+        "name": "Test",
+        "year": 2026,
+        "label": "Test",
+        "active": true,
+        "status": "active",
+        "teams": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "initialPoints": 1000,
+        "isDemo": false,
+        "startsAt": null,
+        "endsAt": null
+      }
+    ],
+    "responseHeaders": {}
+  },
+  "GET /api/v1/events": {
+    "path": "/events?year=2026",
+    "body": null,
+    "status": 200,
+    "response": [
+      {
+        "id": "s",
+        "slug": "worlds",
+        "name": "Test",
+        "year": 2026,
+        "label": "Test",
+        "active": true,
+        "status": "active",
+        "teams": [
+          "A",
+          "B",
+          "C",
+          "D"
+        ],
+        "initialPoints": 1000,
+        "isDemo": false,
+        "startsAt": null,
+        "endsAt": null
+      }
+    ],
+    "responseHeaders": {}
+  },
+  "GET /api/v1/events/{event_id}": {
+    "path": "/events/s",
+    "body": null,
+    "status": 200,
+    "response": {
+      "id": "s",
+      "slug": "worlds",
+      "name": "Test",
+      "year": 2026,
+      "label": "Test",
+      "active": true,
+      "status": "active",
+      "teams": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "initialPoints": 1000,
+      "isDemo": false,
+      "startsAt": null,
+      "endsAt": null,
+      "stages": [
+        {
+          "name": "Final",
+          "startsAt": 1792059329115,
+          "endsAt": 1792059329115,
+          "matchCount": 3,
+          "unscheduledCount": 0
+        }
+      ]
+    },
+    "responseHeaders": {}
+  },
+  "GET /api/v1/matches": {
+    "path": "/matches?season_id=s&limit=50&offset=0",
+    "body": null,
+    "status": 200,
+    "response": {
+      "items": [
+        {
+          "id": "m1",
+          "event": "s",
+          "season": "s",
+          "round": "Final",
+          "teams": [
+            "A",
+            "B"
+          ],
+          "teamDetails": [
+            {
+              "id": "A",
+              "name": "A",
+              "region": "",
+              "color": "#64748b",
+              "logo": null,
+              "acronym": null,
+              "location": null,
+              "apiSource": "pandascore"
+            },
+            {
+              "id": "B",
+              "name": "B",
+              "region": "",
+              "color": "#64748b",
+              "logo": null,
+              "acronym": null,
+              "location": null,
+              "apiSource": "pandascore"
+            }
+          ],
+          "pools": [
+            100,
+            0
+          ],
+          "startsAt": 1792059329115,
+          "status": "scheduled",
+          "score": null,
+          "winner": null,
+          "bettingOpen": true,
+          "seasonStatus": "active",
+          "result": null,
+          "settlementStatus": "pending",
+          "settlementPool": null,
+          "settlementPaid": null,
+          "removedRemainder": null,
+          "isDemo": false,
+          "poolSource": "bets",
+          "apiSource": "pandascore",
+          "providerStatus": "not_started",
+          "apiSyncedAt": 1792052129115,
+          "name": "",
+          "matchType": null,
+          "numberOfGames": null,
+          "league": null,
+          "tournament": null,
+          "forfeit": false,
+          "draw": false,
+          "dataIssues": [],
+          "bettingClosedReason": null
+        },
+        {
+          "id": "m2",
+          "event": "s",
+          "season": "s",
+          "round": "Final",
+          "teams": [
+            "A",
+            "B"
+          ],
+          "teamDetails": [
+            {
+              "id": "A",
+              "name": "A",
+              "region": "",
+              "color": "#64748b",
+              "logo": null,
+              "acronym": null,
+              "location": null,
+              "apiSource": "pandascore"
+            },
+            {
+              "id": "B",
+              "name": "B",
+              "region": "",
+              "color": "#64748b",
+              "logo": null,
+              "acronym": null,
+              "location": null,
+              "apiSource": "pandascore"
+            }
+          ],
+          "pools": [
+            0,
+            0
+          ],
+          "startsAt": 1792059329115,
+          "status": "scheduled",
+          "score": null,
+          "winner": null,
+          "bettingOpen": true,
+          "seasonStatus": "active",
+          "result": null,
+          "settlementStatus": "pending",
+          "settlementPool": null,
+          "settlementPaid": null,
+          "removedRemainder": null,
+          "isDemo": false,
+          "poolSource": "bets",
+          "apiSource": "pandascore",
+          "providerStatus": "not_started",
+          "apiSyncedAt": 1792052129115,
+          "name": "",
+          "matchType": null,
+          "numberOfGames": null,
+          "league": null,
+          "tournament": null,
+          "forfeit": false,
+          "draw": false,
+          "dataIssues": [],
+          "bettingClosedReason": null
+        },
+        {
+          "id": "m3",
+          "event": "s",
+          "season": "s",
+          "round": "Final",
+          "teams": [
+            "C",
+            "D"
+          ],
+          "teamDetails": [
+            {
+              "id": "C",
+              "name": "C",
+              "region": "",
+              "color": "#64748b",
+              "logo": null,
+              "acronym": null,
+              "location": null,
+              "apiSource": "pandascore"
+            },
+            {
+              "id": "D",
+              "name": "D",
+              "region": "",
+              "color": "#64748b",
+              "logo": null,
+              "acronym": null,
+              "location": null,
+              "apiSource": "pandascore"
+            }
+          ],
+          "pools": [
+            0,
+            0
+          ],
+          "startsAt": 1792059329115,
+          "status": "scheduled",
+          "score": null,
+          "winner": null,
+          "bettingOpen": true,
+          "seasonStatus": "active",
+          "result": null,
+          "settlementStatus": "pending",
+          "settlementPool": null,
+          "settlementPaid": null,
+          "removedRemainder": null,
+          "isDemo": false,
+          "poolSource": "bets",
+          "apiSource": "pandascore",
+          "providerStatus": "not_started",
+          "apiSyncedAt": 1792052129115,
+          "name": "",
+          "matchType": null,
+          "numberOfGames": null,
+          "league": null,
+          "tournament": null,
+          "forfeit": false,
+          "draw": false,
+          "dataIssues": [],
+          "bettingClosedReason": null
+        }
+      ],
+      "total": 3,
+      "limit": 50,
+      "offset": 0
+    },
+    "responseHeaders": {}
+  },
+  "GET /api/v1/matches/{match_id}": {
+    "path": "/matches/m1",
+    "body": null,
+    "status": 200,
+    "response": {
+      "id": "m1",
+      "event": "s",
+      "season": "s",
+      "round": "Final",
+      "teams": [
+        "A",
+        "B"
+      ],
+      "teamDetails": [
+        {
+          "id": "A",
+          "name": "A",
+          "region": "",
+          "color": "#64748b",
+          "logo": null,
+          "acronym": null,
+          "location": null,
+          "apiSource": "pandascore"
+        },
+        {
+          "id": "B",
+          "name": "B",
+          "region": "",
+          "color": "#64748b",
+          "logo": null,
+          "acronym": null,
+          "location": null,
+          "apiSource": "pandascore"
+        }
+      ],
+      "pools": [
+        100,
+        0
+      ],
+      "startsAt": 1792059329115,
+      "status": "scheduled",
+      "score": null,
+      "winner": null,
+      "bettingOpen": true,
+      "seasonStatus": "active",
+      "result": null,
+      "settlementStatus": "pending",
+      "settlementPool": null,
+      "settlementPaid": null,
+      "removedRemainder": null,
+      "isDemo": false,
+      "poolSource": "bets",
+      "apiSource": "pandascore",
+      "providerStatus": "not_started",
+      "apiSyncedAt": 1792052129115,
+      "name": "",
+      "matchType": null,
+      "numberOfGames": null,
+      "league": null,
+      "tournament": null,
+      "forfeit": false,
+      "draw": false,
+      "dataIssues": [],
+      "bettingClosedReason": null
+    },
+    "responseHeaders": {}
+  },
+  "GET /api/v1/matches/{match_id}/stake-ranking": {
+    "path": "/matches/m1/stake-ranking",
+    "body": null,
+    "status": 200,
+    "response": {
+      "matchId": "m1",
+      "seasonId": "s",
+      "teams": [
+        "A",
+        "B"
+      ],
+      "pools": [
+        100,
+        0
+      ],
+      "items": [
+        [
+          {
+            "rank": 1,
+            "displayName": null,
+            "amount": 100,
+            "shareBasisPoints": 10000,
+            "sealHeld": true
+          }
+        ],
+        []
+      ]
+    },
+    "responseHeaders": {}
+  },
+  "POST /api/v1/admin/seasons/{season_id}/refresh": {
+    "path": "/admin/seasons/s/refresh",
+    "body": null,
+    "status": 200,
+    "response": {
+      "seasonId": "s",
+      "seriesId": 700,
+      "received": 1,
+      "created": 1,
+      "updated": 0,
+      "skipped_tbd": 0,
+      "stored_tbd": 0,
+      "stored_unscheduled": 0,
+      "skipped_unscheduled": 0,
+      "conflicts": 0,
+      "stale": 0,
+      "settled": 0,
+      "refunded": 0,
+      "settlement_blocked": 0
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "POST /api/v1/admin/matches/{match_id}/result": {
+    "path": "/admin/matches/m1/result",
+    "body": {
+      "result": "team_a_win",
+      "score_a": 2,
+      "score_b": 1
+    },
+    "status": 200,
+    "response": {
+      "matchId": "m1",
+      "seasonId": "s",
+      "result": "team_a_win",
+      "winner": "A",
+      "settlementStatus": "settled",
+      "pool": 100,
+      "paid": 100,
+      "removedRemainder": 0
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "POST /api/v1/admin/seasons/{season_id}/finish": {
+    "path": "/admin/seasons/s/finish",
+    "body": null,
+    "status": 200,
+    "response": {
+      "seasonId": "s",
+      "status": "finished"
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "POST /api/v1/admin/seasons/{season_id}/activate": {
+    "path": "/admin/seasons/next/activate",
+    "body": null,
+    "status": 200,
+    "response": {
+      "seasonId": "next",
+      "status": "active",
+      "initializedMembers": 2
+    },
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  },
+  "POST /api/v1/auth/logout": {
+    "path": "/auth/logout",
+    "body": null,
+    "status": 204,
+    "response": null,
+    "responseHeaders": {
+      "cache-control": "no-store"
+    }
+  }
+}

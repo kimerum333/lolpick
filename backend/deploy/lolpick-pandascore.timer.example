@@ -1,0 +1,11 @@
+[Unit]
+Description=Run LOLPICK PandaScore collection every hour
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=30
+Unit=lolpick-pandascore.service
+
+[Install]
+WantedBy=timers.target

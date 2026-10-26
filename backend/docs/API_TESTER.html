@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>LoLPICK API 테스트</title>
+<style>
+:root{color-scheme:light;font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#182233;background:#f3f5f8}
+*{box-sizing:border-box}body{margin:0}header{padding:22px 28px;background:#15253b;color:white;display:flex;justify-content:space-between;align-items:center;gap:16px}h1{font-size:24px;margin:0}h2{font-size:18px;margin:0 0 14px}h3{font-size:15px;margin:0 0 8px}p{margin:8px 0}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid #b8c5d5;border-radius:7px;background:white;color:#1d3552;padding:9px 13px;font-weight:600}button:hover{background:#edf2f8}button:disabled{opacity:.5;cursor:default}.primary{background:#1760b5;color:white;border-color:#1760b5}.primary:hover{background:#104a90}.muted,small{color:#5d697a}header small{color:#c7d5e9}main{padding:20px;max-width:1700px;margin:auto}.panel{background:white;border:1px solid #dbe2ec;border-radius:10px;padding:20px;margin-bottom:16px}.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.grow{flex:1;min-width:220px}.layout{display:grid;grid-template-columns:minmax(340px,.9fr) minmax(0,1.2fr);gap:18px}.stack label,.paramTitle{display:block;font-weight:600;margin-bottom:6px}input[type=text],input[type=password],input[type=number],select,textarea{width:100%;padding:9px 11px;border:1px solid #b8c5d5;border-radius:6px;background:#fff;color:#182233;min-width:0}input[type=checkbox]{width:17px;height:17px;vertical-align:middle;margin:0 7px 0 0;accent-color:#1760b5}.check{font-weight:400!important}.stack{margin:12px 0}.param{display:grid;grid-template-columns:minmax(150px,.8fr) minmax(120px,1fr);gap:6px 12px;margin:12px 0;padding-bottom:12px;border-bottom:1px solid #edf0f5}.param small{grid-column:1/-1}.paramTitle{font-size:14px;font-weight:500;align-self:center;margin:0}.warn{background:#fff6e4;border:1px solid #e7bd6b;padding:12px;border-radius:7px}.description{color:#425269;margin:12px 0;min-height:44px}.mono,pre,textarea{font-family:ui-monospace,Consolas,monospace;font-size:13px}pre{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;margin:0;min-height:50px;max-height:540px;overflow:auto;padding:14px;background:#f6f8fb;border:1px solid #e2e8f0;border-radius:7px;color:#182233}textarea{min-height:160px;resize:vertical;tab-size:2}.metrics{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:14px 0}.badge{background:#e8eef7;color:#21436d;padding:4px 9px;border-radius:5px;font-weight:650}#outcome{font-weight:650}#outcome[data-status=ok]{color:#127149}#outcome[data-status=warn]{color:#9b5b08}#notice{white-space:pre-wrap;color:#344b68;padding:12px 15px;border-left:4px solid #3c73b2;background:#eaf1fa;margin:0 0 16px;min-height:48px}details{margin-top:14px}summary{cursor:pointer;font-weight:600;margin-bottom:8px}.sep{border-top:1px solid #e3e8ef;margin:18px 0}.responseTitle{justify-content:space-between}.small{font-size:13px}footer{font-size:13px;color:#5d697a;padding:0 5px 20px}a{color:#1760b5}[hidden]{display:none!important}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #80b6ef;outline-offset:2px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}header{padding:18px;align-items:flex-start;flex-direction:column}main{padding:12px}.panel{padding:15px}.param{grid-template-columns:1fr}.param small{grid-column:auto}.grow{min-width:180px}pre{max-height:420px}}
+</style>
+</head>
+<body>
+<header><div><h1>LoLPICK API 테스트</h1><small>API 선택 → 입력 → 미리보기 → 요청 보내기</small></div><span id="version"></span></header>
+<main>
+<div id="notice" role="status" aria-live="polite">주소를 입력하고 API를 선택하세요. 페이지를 여는 것만으로 요청하지 않습니다.</div>
+<section id="settings" class="panel" aria-labelledby="settingsTitle">
+<h2 id="settingsTitle">서버와 인증</h2>
+<div class="row">
+<div class="grow stack"><label for="base">API 주소 · /api/v1까지</label><input id="base" type="text" placeholder="https://서버주소/api/v1" autocomplete="off" spellcheck="false"></div>
+<div class="stack"><label for="timeout">제한 시간 ms</label><input id="timeout" type="number" min="1000" max="300000" step="1000" value="15000"></div>
+</div>
+<div id="authArea">
+<div class="row"><div class="grow stack"><label for="token">서비스 access_token</label><input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Google 로그인으로 받은 서비스 access_token"></div></div>
+<label class="check"><input id="trusted" type="checkbox">API 주소를 확인했으며 이 주소로 토큰을 보내겠습니다.</label>
+<p class="muted small">인증 토큰은 이 페이지 메모리에서만 사용합니다. 브라우저 저장소에 기록하지 않습니다. 관리자 API는 관리자 권한과 서버의 MFA 조건이 필요합니다.</p>
+</div>
+<div class="row"><button id="clear" type="button">토큰·응답·기록 지우기</button><span class="muted small">결과 미확인 작업의 키와 본문은 지우기 전에 별도로 확인하세요.</span></div>
+</section>
+<div class="row panel">
+<div class="stack"><label for="group">분류</label><select id="group"><option value="all">전체</option><option value="public">공개 조회</option><option value="member">회원 기능</option><option value="admin">관리자 기능</option></select></div>
+<div class="grow stack"><label for="search">API 검색</label><input id="search" type="text" placeholder="예: matches, 배팅, session" autocomplete="off"></div>
+<div class="grow stack"><label for="operation">실행할 API</label><select id="operation" class="mono"></select></div>
+</div>
+<div class="layout">
+<section id="editor" class="panel" aria-labelledby="requestTitle">
+<h2 id="requestTitle">요청 입력</h2>
+<p id="description" class="description"></p>
+<div id="params"></div>
+<div id="bodyArea" class="stack" hidden>
+<div class="row responseTitle"><label for="body">JSON 본문</label><button id="format" type="button">JSON 정리</button></div>
+<textarea id="body" spellcheck="false" maxlength="64000"></textarea>
+</div>
+<div id="keyArea" class="stack" hidden>
+<label for="key">Idempotency-Key</label>
+<div class="row"><input id="key" class="grow mono" type="text" autocomplete="off" spellcheck="false"><button id="newKey" type="button">새 작업 키</button></div>
+<small>처음 실행할 작업에 키를 만드세요. 같은 작업을 재확인할 때는 원래 키·본문을 그대로 사용합니다.</small>
+</div>
+<div class="row"><button id="preview" type="button">요청 미리보기</button></div>
+<details open><summary>전송할 요청 · 토큰 제외</summary><pre id="request"></pre></details>
+<div id="writeArea" class="warn stack" hidden><label class="check"><input id="confirmed" type="checkbox"><span id="writeLabel"></span></label></div>
+<div class="row"><button id="send" class="primary" type="button">요청 보내기</button></div>
+</section>
+<section class="panel" aria-labelledby="responseTitle">
+<div class="row responseTitle"><h2 id="responseTitle">응답</h2><div class="row"><button id="copy" type="button">응답 복사</button><button id="abort" type="button" disabled>대기 중단</button></div></div>
+<div class="metrics"><span id="status" class="badge">—</span><span id="elapsed" class="muted"></span><span id="outcome" role="status" aria-live="polite">대기</span></div>
+<pre id="response" tabindex="0">요청을 보내면 응답이 표시됩니다.</pre>
+<details open><summary>응답 검사</summary><pre id="checks"></pre></details>
+<details><summary>응답 헤더 · 요청 ID / 재시도 대기 / 데이터 신선도</summary><pre id="headers"></pre></details>
+<details><summary>최근 요청 · 메모리에 최대 10개</summary><pre id="history"></pre></details>
+</section>
+</div>
+<section class="panel">
+<h2>처음 연결할 때</h2>
+<p>공개 <code>/health</code> → <code>/ready</code> → <code>/seasons</code>로 연결과 실제 ID를 확인하세요. 회원 기능은 새 Google 로그인 → <code>POST /auth/session</code> → 시즌을 지정한 <code>GET /auth/me</code> → 응원·context·배팅·이력 순서로 확인합니다. session·logout은 JSON 본문을 보내지 않습니다.</p>
+<p>선택 쿼리는 체크한 항목만 전송합니다. 시각 숫자는 UTC epoch 밀리초이며, 개인 응답 시각 문자열은 타임존 포함 ISO 8601입니다. 배팅·정산은 실제 포인트 및 상태를 바꾸므로 테스트 계정·테스트 데이터를 사용하세요.</p>
+<p class="warn">시간 초과·중단·네트워크 오류는 거래 취소를 의미하지 않습니다. 쓰기 결과가 미확인일 때는 새 키로 반복하지 말고, 같은 계정·로그인 세션·주소·본문·키로 서버 결과를 확인하세요. 이전 계정의 미확인 요청을 새 계정 토큰으로 보내지 마세요.</p>
+<details><summary>CORS와 실행 방법</summary><p>이 파일을 개발 프론트와 같은 origin에 올리거나, 백엔드가 정확한 테스트 origin을 허용해야 합니다. file://에서 차단된다면 개발용 HTTP 서버로 제공하세요. 운영 서버에 null origin이나 임의의 모든 origin을 허용하지 마세요.</p><p>서버는 Authorization·Content-Type·Idempotency-Key 요청 헤더와 OPTIONS preflight를 처리하고, X-Request-ID·Retry-After·X-Data-Stale·X-Data-Age-Seconds를 브라우저에 노출해야 해당 값을 확인할 수 있습니다. CORS·TLS·네트워크 실패는 브라우저에서 정확히 구분할 수 없으므로 서버 로그의 요청 ID도 함께 확인하세요.</p></details>
+</section>
+<footer>외부 라이브러리·폰트·분석 도구를 사용하지 않습니다. 자동 호출·자동 POST 재시도·상시 폴링이 없습니다. 응답 내용은 HTML로 실행하지 않고 텍스트로 표시합니다. 기본 입력·형식 검사와 별도로 실제 권한·거래·동시성은 서버가 검증합니다.</footer>
+</main>
+<script type="application/json" id="contract">{"version":"0.14.1","schemas":{"BetOut":{"properties":{"id":{"type":"integer"},"seasonId":{"type":"string"},"matchId":{"type":"string"},"teamId":{"type":"string"},"amount":{"type":"integer"},"status":{"type":"string","enum":["pending","won","lost","refunded"]},"payout":{"anyOf":[{"type":"integer"},{"type":"null"}]},"cheerAction":{"anyOf":[{"type":"string","enum":["cheering","betrayal"]},{"type":"null"}]},"createdAt":{"type":"string","format":"date-time"},"currentPoints":{"anyOf":[{"type":"integer"},{"type":"null"}]},"cheer":{"anyOf":[{"$ref":"#/components/schemas/CheerOut"},{"type":"null"}]}},"type":"object","required":["id","seasonId","matchId","teamId","amount","status","payout","cheerAction","createdAt"]},"BetPage":{"properties":{"items":{"items":{"$ref":"#/components/schemas/BetOut"},"type":"array"},"total":{"type":"integer"},"limit":{"type":"integer"},"offset":{"type":"integer"}},"type":"object","required":["items","total","limit","offset"]},"BetRequest":{"properties":{"matchId":{"type":"string","maxLength":80,"minLength":1},"teamId":{"type":"string","maxLength":80,"minLength":1},"amount":{"type":"integer","maximum":9007199254740991,"exclusiveMinimum":0}},"additionalProperties":false,"type":"object","required":["matchId","teamId","amount"]},"CheerOut":{"properties":{"id":{"type":"integer"},"seasonId":{"type":"string"},"teamId":{"type":"string"},"sealHeld":{"type":"boolean"},"sealRevokedAt":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]},"finalizedAt":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]},"cheeringCount":{"type":"integer"},"betrayalCount":{"type":"integer"},"createdAt":{"type":"string","format":"date-time"}},"type":"object","required":["id","seasonId","teamId","sealHeld","sealRevokedAt","finalizedAt","cheeringCount","betrayalCount","createdAt"]},"CheerRequest":{"properties":{"seasonId":{"type":"string","maxLength":80,"minLength":1},"teamId":{"type":"string","maxLength":80,"minLength":1}},"additionalProperties":false,"type":"object","required":["seasonId","teamId"]},"CompetitionOut":{"properties":{"id":{"type":"string"},"name":{"type":"string"},"slug":{"anyOf":[{"type":"string"},{"type":"null"}]}},"type":"object","required":["id","name"]},"ErrorDetail":{"properties":{"code":{"type":"string"},"message":{"type":"string"}},"type":"object","required":["code","message"]},"ErrorOut":{"properties":{"detail":{"$ref":"#/components/schemas/ErrorDetail"}},"type":"object","required":["detail"]},"EventOut":{"properties":{"id":{"type":"string"},"slug":{"type":"string"},"name":{"type":"string"},"year":{"type":"integer"},"label":{"type":"string"},"active":{"type":"boolean"},"status":{"type":"string","enum":["upcoming","active","finished"]},"teams":{"items":{"type":"string"},"type":"array"},"initialPoints":{"type":"integer"},"isDemo":{"type":"boolean"},"startsAt":{"anyOf":[{"type":"integer"},{"type":"null"}]},"endsAt":{"anyOf":[{"type":"integer"},{"type":"null"}]},"stages":{"items":{"$ref":"#/components/schemas/EventStageOut"},"type":"array"}},"type":"object","required":["id","slug","name","year","label","active","status","teams","initialPoints","isDemo","stages"]},"EventStageOut":{"properties":{"name":{"type":"string"},"startsAt":{"anyOf":[{"type":"integer"},{"type":"null"}]},"endsAt":{"anyOf":[{"type":"integer"},{"type":"null"}]},"matchCount":{"type":"integer"},"unscheduledCount":{"type":"integer"}},"type":"object","required":["name","startsAt","endsAt","matchCount","unscheduledCount"]},"HealthOut":{"properties":{"status":{"type":"string","const":"ok"},"service":{"type":"string","const":"lolpick-backend"},"version":{"type":"string"}},"type":"object","required":["status","service","version"]},"MatchContextOut":{"properties":{"matchId":{"type":"string"},"seasonId":{"type":"string"},"currentPoints":{"type":"integer"},"cheer":{"anyOf":[{"$ref":"#/components/schemas/CheerOut"},{"type":"null"}]},"bet":{"anyOf":[{"$ref":"#/components/schemas/BetOut"},{"type":"null"}]},"bettingOpen":{"type":"boolean"},"eligible":{"type":"boolean"},"reason":{"anyOf":[{"type":"string"},{"type":"null"}]},"sessionExpiresAt":{"type":"string","format":"date-time"},"myRank":{"anyOf":[{"type":"integer"},{"type":"null"}]}},"type":"object","required":["matchId","seasonId","currentPoints","cheer","bet","bettingOpen","eligible","reason","sessionExpiresAt"]},"MatchOut":{"properties":{"id":{"type":"string"},"event":{"type":"string"},"season":{"type":"string"},"round":{"type":"string"},"teams":{"prefixItems":[{"anyOf":[{"type":"string"},{"type":"null"}]},{"anyOf":[{"type":"string"},{"type":"null"}]}],"type":"array","maxItems":2,"minItems":2},"teamDetails":{"prefixItems":[{"anyOf":[{"$ref":"#/components/schemas/TeamOut"},{"type":"null"}]},{"anyOf":[{"$ref":"#/components/schemas/TeamOut"},{"type":"null"}]}],"type":"array","maxItems":2,"minItems":2},"pools":{"prefixItems":[{"type":"integer"},{"type":"integer"}],"type":"array","maxItems":2,"minItems":2},"startsAt":{"anyOf":[{"type":"integer"},{"type":"null"}]},"status":{"type":"string","enum":["scheduled","live","finished","settled","cancelled"]},"score":{"anyOf":[{"prefixItems":[{"type":"integer"},{"type":"integer"}],"type":"array","maxItems":2,"minItems":2},{"type":"null"}]},"winner":{"anyOf":[{"type":"string"},{"type":"null"}]},"bettingOpen":{"type":"boolean"},"seasonStatus":{"anyOf":[{"type":"string","enum":["upcoming","active","finished"]},{"type":"null"}]},"result":{"anyOf":[{"type":"string","enum":["team_a_win","team_b_win","draw","cancelled"]},{"type":"null"}]},"settlementStatus":{"type":"string","enum":["pending","settled","refunded"]},"settlementPool":{"anyOf":[{"type":"integer"},{"type":"null"}]},"settlementPaid":{"anyOf":[{"type":"integer"},{"type":"null"}]},"removedRemainder":{"anyOf":[{"type":"integer"},{"type":"null"}]},"isDemo":{"type":"boolean"},"poolSource":{"type":"string","enum":["demo","bets"]},"apiSource":{"type":"string"},"providerStatus":{"anyOf":[{"type":"string"},{"type":"null"}]},"apiSyncedAt":{"anyOf":[{"type":"integer"},{"type":"null"}]},"name":{"type":"string"},"matchType":{"anyOf":[{"type":"string"},{"type":"null"}]},"numberOfGames":{"anyOf":[{"type":"integer"},{"type":"null"}]},"league":{"anyOf":[{"$ref":"#/components/schemas/CompetitionOut"},{"type":"null"}]},"tournament":{"anyOf":[{"$ref":"#/components/schemas/CompetitionOut"},{"type":"null"}]},"forfeit":{"type":"boolean"},"draw":{"type":"boolean"},"dataIssues":{"items":{"type":"string"},"type":"array"},"bettingClosedReason":{"anyOf":[{"type":"string"},{"type":"null"}]}},"type":"object","required":["id","event","season","round","teams","teamDetails","pools","startsAt","status","score","winner","bettingOpen","isDemo","poolSource","apiSource"]},"MatchPage":{"properties":{"items":{"items":{"$ref":"#/components/schemas/MatchOut"},"type":"array"},"total":{"type":"integer"},"limit":{"type":"integer"},"offset":{"type":"integer"}},"type":"object","required":["items","total","limit","offset"]},"MatchResultRequest":{"properties":{"result":{"type":"string","enum":["team_a_win","team_b_win","draw","cancelled"]},"score_a":{"anyOf":[{"type":"integer","maximum":32767,"minimum":0},{"type":"null"}]},"score_b":{"anyOf":[{"type":"integer","maximum":32767,"minimum":0},{"type":"null"}]}},"additionalProperties":false,"type":"object","required":["result"]},"MemberOut":{"properties":{"memberId":{"type":"string","format":"uuid"},"currentPoints":{"type":"integer"},"currentSeasonId":{"anyOf":[{"type":"string"},{"type":"null"}]},"availableSeasonIds":{"items":{"type":"string"},"type":"array"},"sessionExpiresAt":{"anyOf":[{"type":"string","format":"date-time"},{"type":"null"}]}},"type":"object","required":["memberId","currentPoints","currentSeasonId"]},"ReadyOut":{"properties":{"status":{"type":"string","const":"ok"},"database":{"type":"string","const":"connected"},"migration":{"type":"string"}},"type":"object","required":["status","database","migration"]},"SeasonActivatedOut":{"properties":{"seasonId":{"type":"string"},"status":{"type":"string","const":"active"},"initializedMembers":{"type":"integer"}},"type":"object","required":["seasonId","status","initializedMembers"]},"SeasonFinishedOut":{"properties":{"seasonId":{"type":"string"},"status":{"type":"string","const":"finished"}},"type":"object","required":["seasonId","status"]},"SeasonOut":{"properties":{"id":{"type":"string"},"slug":{"type":"string"},"name":{"type":"string"},"year":{"type":"integer"},"label":{"type":"string"},"active":{"type":"boolean"},"status":{"type":"string","enum":["upcoming","active","finished"]},"teams":{"items":{"type":"string"},"type":"array"},"initialPoints":{"type":"integer"},"isDemo":{"type":"boolean"},"startsAt":{"anyOf":[{"type":"integer"},{"type":"null"}]},"endsAt":{"anyOf":[{"type":"integer"},{"type":"null"}]}},"type":"object","required":["id","slug","name","year","label","active","status","teams","initialPoints","isDemo"]},"SettlementOut":{"properties":{"matchId":{"type":"string"},"seasonId":{"type":"string"},"result":{"anyOf":[{"type":"string","enum":["team_a_win","team_b_win","draw","cancelled"]},{"type":"null"}]},"winner":{"anyOf":[{"type":"string"},{"type":"null"}]},"settlementStatus":{"type":"string","enum":["pending","settled","refunded"]},"pool":{"anyOf":[{"type":"integer"},{"type":"null"}]},"paid":{"anyOf":[{"type":"integer"},{"type":"null"}]},"removedRemainder":{"anyOf":[{"type":"integer"},{"type":"null"}]}},"type":"object","required":["matchId","seasonId","result","winner","settlementStatus","pool","paid","removedRemainder"]},"StakeRankOut":{"properties":{"rank":{"type":"integer"},"displayName":{"anyOf":[{"type":"string"},{"type":"null"}]},"amount":{"type":"integer"},"shareBasisPoints":{"type":"integer"},"sealHeld":{"type":"boolean"}},"type":"object","required":["rank","amount","shareBasisPoints","sealHeld"]},"StakeRankingOut":{"properties":{"matchId":{"type":"string"},"seasonId":{"type":"string"},"teams":{"prefixItems":[{"anyOf":[{"type":"string"},{"type":"null"}]},{"anyOf":[{"type":"string"},{"type":"null"}]}],"type":"array","maxItems":2,"minItems":2},"pools":{"prefixItems":[{"type":"integer"},{"type":"integer"}],"type":"array","maxItems":2,"minItems":2},"items":{"prefixItems":[{"items":{"$ref":"#/components/schemas/StakeRankOut"},"type":"array"},{"items":{"$ref":"#/components/schemas/StakeRankOut"},"type":"array"}],"type":"array","maxItems":2,"minItems":2}},"type":"object","required":["matchId","seasonId","teams","pools","items"]},"SyncSummaryOut":{"properties":{"seasonId":{"type":"string"},"seriesId":{"type":"integer"},"received":{"type":"integer"},"created":{"type":"integer"},"updated":{"type":"integer"},"skipped_tbd":{"type":"integer"},"stored_tbd":{"type":"integer"},"stored_unscheduled":{"type":"integer"},"skipped_unscheduled":{"type":"integer"},"conflicts":{"type":"integer"},"stale":{"type":"integer"},"settled":{"type":"integer"},"refunded":{"type":"integer"},"settlement_blocked":{"type":"integer"}},"type":"object","required":["seasonId","seriesId","received","created","updated","skipped_tbd","stored_tbd","stored_unscheduled","skipped_unscheduled","conflicts","stale","settled","refunded","settlement_blocked"]},"TeamOut":{"properties":{"id":{"type":"string"},"name":{"type":"string"},"region":{"type":"string"},"color":{"type":"string"},"logo":{"anyOf":[{"type":"string"},{"type":"null"}]},"acronym":{"anyOf":[{"type":"string"},{"type":"null"}]},"location":{"anyOf":[{"type":"string"},{"type":"null"}]},"apiSource":{"type":"string"}},"type":"object","required":["id","name","apiSource"]}},"ops":[{"m":"GET","p":"/health","g":"public","n":"프로세스 상태를 조회합니다. DB 준비 상태는 /ready로 확인하세요.","params":[],"body":null,"status":200,"response":{"$ref":"#/components/schemas/HealthOut"}},{"m":"GET","p":"/ready","g":"public","n":"DB 연결과 마이그레이션 준비 상태를 조회합니다.","params":[],"body":null,"status":200,"response":{"$ref":"#/components/schemas/ReadyOut"}},{"m":"GET","p":"/teams","g":"public","n":"응원 팀 선택에는 season_id를 지정하세요.","params":[{"name":"season_id","in":"query","required":false,"schema":{"anyOf":[{"type":"string","maxLength":80},{"type":"null"}]}}],"body":null,"status":200,"response":{"type":"array","items":{"$ref":"#/components/schemas/TeamOut"},"title":"Response Teams Api V1 Teams Get"}},{"m":"GET","p":"/events","g":"public","n":"시즌 목록입니다. event_id는 시즌의 공개 id를 사용합니다.","params":[{"name":"year","in":"query","required":false,"schema":{"anyOf":[{"type":"integer","maximum":9999,"minimum":2000},{"type":"null"}]}}],"body":null,"status":200,"response":{"type":"array","items":{"$ref":"#/components/schemas/SeasonOut"},"title":"Response Seasons Api V1 Events Get"}},{"m":"GET","p":"/seasons","g":"public","n":"시즌 목록을 먼저 조회해 실제 시즌 ID를 확인하세요.","params":[{"name":"year","in":"query","required":false,"schema":{"anyOf":[{"type":"integer","maximum":9999,"minimum":2000},{"type":"null"}]}}],"body":null,"status":200,"response":{"type":"array","items":{"$ref":"#/components/schemas/SeasonOut"},"title":"Response Seasons Api V1 Seasons Get"}},{"m":"GET","p":"/events/{event_id}","g":"public","n":"이벤트 상세와 라운드 집계를 조회합니다.","params":[{"name":"event_id","in":"path","required":true,"schema":{"type":"string"}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/EventOut"}},{"m":"GET","p":"/matches","g":"public","n":"date는 한국 날짜입니다. date와 unscheduled=true를 함께 쓰지 마세요. season_id와 event_id를 함께 쓰면 같은 값이어야 합니다.","params":[{"name":"season_id","in":"query","required":false,"schema":{"anyOf":[{"type":"string","maxLength":80},{"type":"null"}]}},{"name":"event_id","in":"query","required":false,"schema":{"anyOf":[{"type":"string","maxLength":80},{"type":"null"}]}},{"name":"status","in":"query","required":false,"schema":{"anyOf":[{"enum":["scheduled","live","finished","settled","cancelled"],"type":"string"},{"type":"null"}]}},{"name":"limit","in":"query","required":false,"schema":{"type":"integer","maximum":100,"minimum":1}},{"name":"offset","in":"query","required":false,"schema":{"type":"integer","maximum":2147483647,"minimum":0}},{"name":"api_source","in":"query","required":false,"schema":{"anyOf":[{"type":"string","minLength":1,"maxLength":40},{"type":"null"}]}},{"name":"is_demo","in":"query","required":false,"schema":{"anyOf":[{"type":"boolean"},{"type":"null"}]}},{"name":"team_id","in":"query","required":false,"schema":{"anyOf":[{"type":"string","minLength":1,"maxLength":80},{"type":"null"}]}},{"name":"date","in":"query","required":false,"schema":{"anyOf":[{"type":"string","format":"date"},{"type":"null"}]}},{"name":"unscheduled","in":"query","required":false,"schema":{"anyOf":[{"type":"boolean"},{"type":"null"}]}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/MatchPage"}},{"m":"GET","p":"/matches/{match_id}","g":"public","n":"팀·시각이 null일 수 있습니다. bettingOpen과 bettingClosedReason을 확인하세요.","params":[{"name":"match_id","in":"path","required":true,"schema":{"type":"string"}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/MatchOut"}},{"m":"GET","p":"/matches/{match_id}/stake-ranking","g":"public","n":"팀별 최대 5명 공개 순위입니다.","params":[{"name":"match_id","in":"path","required":true,"schema":{"type":"string"}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/StakeRankingOut"}},{"m":"POST","p":"/auth/session","g":"member","n":"새 Google 로그인 후 5분 이내 등록합니다. 서비스의 access_token과 UUID 키를 사용하며 본문은 없습니다. 서버 세션은 최초 등록 기준 6시간입니다.","params":[{"name":"Idempotency-Key","in":"header","required":true,"schema":{"type":"string","format":"uuid"}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/MemberOut"}},{"m":"GET","p":"/auth/me","g":"member","n":"선택 시즌의 잔액을 확인하려면 season_id를 지정하세요.","params":[{"name":"season_id","in":"query","required":false,"schema":{"anyOf":[{"type":"string","minLength":1,"maxLength":80},{"type":"null"}]}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/MemberOut"}},{"m":"POST","p":"/auth/logout","g":"member","n":"현재 서버 세션을 철회합니다. 정상 응답은 204이며 본문이 없습니다.","params":[],"body":null,"status":204,"response":null},{"m":"POST","p":"/admin/seasons/{season_id}/refresh","g":"admin","n":"관리자 수동 수집입니다. 실제 경기·정산 상태에 영향을 줄 수 있습니다.","params":[{"name":"season_id","in":"path","required":true,"schema":{"type":"string"}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/SyncSummaryOut"}},{"m":"POST","p":"/admin/seasons/{season_id}/finish","g":"admin","n":"관리자 시즌 종료입니다. 미완료 경기·정산·환불 상태를 먼저 확인하세요.","params":[{"name":"season_id","in":"path","required":true,"schema":{"type":"string"}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/SeasonFinishedOut"}},{"m":"POST","p":"/admin/seasons/{season_id}/activate","g":"admin","n":"관리자 시즌 활성화 및 초기 포인트 지급입니다.","params":[{"name":"season_id","in":"path","required":true,"schema":{"type":"string"}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/SeasonActivatedOut"}},{"m":"POST","p":"/admin/matches/{match_id}/result","g":"admin","n":"관리자 결과 기록과 정산입니다. 점수는 둘 다 보내거나 모두 생략하세요. cancelled에는 점수를 보내지 않습니다.","params":[{"name":"match_id","in":"path","required":true,"schema":{"type":"string"}}],"body":{"$ref":"#/components/schemas/MatchResultRequest"},"status":200,"response":{"$ref":"#/components/schemas/SettlementOut"}},{"m":"POST","p":"/auth/cheer","g":"member","n":"GET은 미계약 시 200 + null입니다. POST는 첫 배팅 전에 팀을 선택하며 시즌 내 변경할 수 없습니다.","params":[{"name":"Idempotency-Key","in":"header","required":true,"schema":{"type":"string","format":"uuid"}}],"body":{"$ref":"#/components/schemas/CheerRequest"},"status":200,"response":{"$ref":"#/components/schemas/CheerOut"}},{"m":"GET","p":"/auth/cheer","g":"member","n":"GET은 미계약 시 200 + null입니다. POST는 첫 배팅 전에 팀을 선택하며 시즌 내 변경할 수 없습니다.","params":[{"name":"season_id","in":"query","required":true,"schema":{"type":"string","minLength":1,"maxLength":80}}],"body":null,"status":200,"response":{"anyOf":[{"$ref":"#/components/schemas/CheerOut"},{"type":"null"}],"title":"Response Get Cheer Api V1 Auth Cheer Get"}},{"m":"GET","p":"/auth/matches/{match_id}/context","g":"member","n":"내 잔액·응원·기존 배팅·참여 가능 여부를 조회합니다.","params":[{"name":"match_id","in":"path","required":true,"schema":{"type":"string"}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/MatchContextOut"}},{"m":"POST","p":"/auth/bets","g":"member","n":"POST는 실제 포인트를 차감합니다. 경기당 1회이며 수정·취소 API는 없습니다. GET 이력의 currentPoints/cheer는 null일 수 있습니다.","params":[{"name":"Idempotency-Key","in":"header","required":true,"schema":{"type":"string","format":"uuid"}}],"body":{"$ref":"#/components/schemas/BetRequest"},"status":200,"response":{"$ref":"#/components/schemas/BetOut"}},{"m":"GET","p":"/auth/bets","g":"member","n":"POST는 실제 포인트를 차감합니다. 경기당 1회이며 수정·취소 API는 없습니다. GET 이력의 currentPoints/cheer는 null일 수 있습니다.","params":[{"name":"season_id","in":"query","required":false,"schema":{"anyOf":[{"type":"string","minLength":1,"maxLength":80},{"type":"null"}]}},{"name":"limit","in":"query","required":false,"schema":{"type":"integer","maximum":100,"minimum":1}},{"name":"offset","in":"query","required":false,"schema":{"type":"integer","maximum":2147483647,"minimum":0}}],"body":null,"status":200,"response":{"$ref":"#/components/schemas/BetPage"}}]}</script>
+<script>"use strict";
+const D=JSON.parse(document.getElementById("contract").textContent);
+const $=id=>document.getElementById(id);
+const S={op:null,busy:false,controller:null,keys:new Map(),bindings:new Map(),history:[],generation:0,preview:null,last:null};
+const names={public:"공개 조회",member:"회원 기능",admin:"관리자 기능"};
+const write=op=>op.m!=="GET";
+const needsKey=op=>op.params.some(p=>p.in==="header"&&p.name==="Idempotency-Key");
+const opID=op=>op.m+" "+op.p;
+function notice(t){$("notice").textContent=t;}
+function schema(s){return s&&s.$ref?D.schemas[s.$ref.split("/").pop()]:s;}
+function core(s){return schema((s.anyOf||[]).find(x=>x.type!=="null")||s);}
+function uuid(){
+ if(globalThis.crypto&&crypto.randomUUID)return crypto.randomUUID();
+ if(!globalThis.crypto||!crypto.getRandomValues)throw Error("UUID 생성이 불가능합니다. 외부에서 생성한 UUID를 직접 입력하세요.");
+ const a=crypto.getRandomValues(new Uint8Array(16));a[6]=(a[6]&15)|64;a[8]=(a[8]&63)|128;
+ const h=Array.from(a,x=>x.toString(16).padStart(2,"0")).join("");
+ return h.slice(0,8)+"-"+h.slice(8,12)+"-"+h.slice(12,16)+"-"+h.slice(16,20)+"-"+h.slice(20);
+}
+function scope(){
+ const t=$("token").value.trim();
+ try{
+  const b=t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");
+  const c=JSON.parse(atob(b.padEnd(Math.ceil(b.length/4)*4,"=")));
+  // Only a UI binding hint. The server verifies signatures, identity and permissions.
+  if(typeof c.sub==="string"&&typeof c.session_id==="string")return JSON.stringify([c.sub,c.session_id]);
+ }catch(_){}
+ return "opaque-login-"+S.generation;
+}
+function base(value){
+ const v=value.trim().replace(/\/+$/,"");
+ const m=/^(https?):\/\/(\[[a-fA-F0-9:]+\]|[A-Za-z0-9.-]+)(?::([0-9]{1,5}))?((?:\/[A-Za-z0-9._~-]+)*\/api\/v1)$/.exec(v);
+ if(!m||m[4].split("/").some(x=>x==="."||x==="..")||(m[3]&&(+m[3]<1||+m[3]>65535)))
+  throw Error("API 주소는 http(s)://서버/api/v1 형식이어야 합니다. 계정 정보·쿼리·#은 넣지 마세요.");
+ if(m[1]==="http"&&!["localhost","127.0.0.1","[::1]"].includes(m[2].toLowerCase()))
+  throw Error("외부 서버는 HTTPS를 사용하세요. HTTP는 로컬 개발 주소만 허용합니다.");
+ if(/(?:^|\.)invalid$/i.test(m[2]))throw Error("예시 주소를 실제 API 주소로 바꾸세요.");
+ return v;
+}
+function validate(value,s,path="$",errors=[]){
+ s=schema(s);
+ if(s.anyOf){
+  if(!s.anyOf.some(v=>validate(value,v,path,[]).length===0))errors.push(path+": 허용 형식 불일치");
+  return errors;
+ }
+ if("const"in s&&value!==s.const)errors.push(path+": 고정값 불일치");
+ if(s.enum&&!s.enum.includes(value))errors.push(path+": 허용값 불일치");
+ const t=s.type,ok=!t||(t==="null"?value===null:t==="integer"?Number.isSafeInteger(value):t==="number"?typeof value==="number"&&Number.isFinite(value):t==="array"?Array.isArray(value):t==="object"?value!==null&&typeof value==="object"&&!Array.isArray(value):typeof value===t);
+ if(!ok){errors.push(path+": "+t+" 필요");return errors;}
+ if(value===null)return errors;
+ if(typeof value==="number"){
+  if(s.minimum!==undefined&&value<s.minimum)errors.push(path+": 최소값 "+s.minimum);
+  if(s.maximum!==undefined&&value>s.maximum)errors.push(path+": 최대값 "+s.maximum);
+  if(s.exclusiveMinimum!==undefined&&value<=s.exclusiveMinimum)errors.push(path+": "+s.exclusiveMinimum+" 초과 필요");
+ }
+ if(typeof value==="string"){
+  if(s.minLength!==undefined&&Array.from(value).length<s.minLength)errors.push(path+": 최소 길이 "+s.minLength);
+  if(s.maxLength!==undefined&&Array.from(value).length>s.maxLength)errors.push(path+": 최대 길이 "+s.maxLength);
+  if(s.format==="uuid"&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value))errors.push(path+": UUID 필요");
+  if(s.format==="date-time"&&(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)||!Number.isFinite(Date.parse(value))))errors.push(path+": 타임존 포함 ISO 시각 필요");
+  if(s.format==="date"){
+   const d=new Date(value+"T00:00:00Z");
+   if(!/^\d{4}-\d{2}-\d{2}$/.test(value)||!Number.isFinite(d.getTime())||d.toISOString().slice(0,10)!==value)errors.push(path+": 유효한 YYYY-MM-DD 필요");
+  }
+ }
+ if(Array.isArray(value)){
+  if(s.minItems!==undefined&&value.length<s.minItems)errors.push(path+": 배열 길이 부족");
+  if(s.maxItems!==undefined&&value.length>s.maxItems)errors.push(path+": 배열 길이 초과");
+  value.forEach((v,i)=>{const item=(s.prefixItems||[])[i]||s.items;if(item&&typeof item==="object")validate(v,item,path+"["+i+"]",errors);});
+ }else if(typeof value==="object"){
+  (s.required||[]).forEach(k=>{if(!Object.prototype.hasOwnProperty.call(value,k))errors.push(path+"."+k+": 필수");});
+  Object.keys(value).forEach(k=>{if(s.properties&&Object.prototype.hasOwnProperty.call(s.properties,k))validate(value[k],s.properties[k],path+"."+k,errors);else if(s.additionalProperties===false)errors.push(path+"."+k+": 추가 필드 금지");});
+ }
+ return errors;
+}
+function fillSelect(){
+ const previous=$("operation").value;
+ $("operation").replaceChildren();
+ const group=$("group").value, search=$("search").value.toLowerCase();
+ D.ops.forEach((o,i)=>{
+  if(group!=="all"&&o.g!==group)return;
+  if(!(o.m+" "+o.p+" "+o.n).toLowerCase().includes(search))return;
+  const option=document.createElement("option");option.value=String(i);option.textContent=o.m+" "+o.p+" · "+names[o.g];$("operation").append(option);
+ });
+ const has=Array.from($("operation").options).some(o=>o.value===previous);
+ if(has)$("operation").value=previous;
+ render();
+}
+function rememberKey(){if(S.op&&needsKey(S.op))S.keys.set(scope()+"|"+opID(S.op),$("key").value.trim());}
+function render(){
+ S.op=$("operation").options.length?(D.ops[Number($("operation").value)]||null):null;S.preview=null;$("confirmed").checked=false;
+ $("params").replaceChildren();$("request").textContent="요청 미리보기를 누르면 전송할 URL과 본문이 표시됩니다.";
+ const o=S.op;
+ $("send").disabled=!o;
+ if(!o){$("description").textContent="일치하는 API가 없습니다.";return;}
+ $("description").textContent=o.n;
+ $("authArea").hidden=o.g==="public";
+ $("keyArea").hidden=!needsKey(o);
+ $("writeArea").hidden=!write(o);
+ $("bodyArea").hidden=!o.body;
+ $("body").value=!o.body?"":o.body.$ref.endsWith("/BetRequest")?JSON.stringify({matchId:"",teamId:"",amount:1},null,2):o.body.$ref.endsWith("/CheerRequest")?JSON.stringify({seasonId:"",teamId:""},null,2):JSON.stringify({result:"team_a_win"},null,2);
+ $("writeLabel").textContent=o.g==="admin"?"관리자 요청의 대상·본문과 실제 상태 및 정산 변경을 확인했습니다.":"요청 대상·본문을 확인했습니다. 세션·응원·포인트 상태가 변경될 수 있습니다.";
+ $("key").value=S.keys.get(scope()+"|"+opID(o))||"";
+ $("key").placeholder="UUID 키를 생성하거나 직접 입력";
+ for(const p of o.params.filter(p=>["path","query"].includes(p.in))){
+  const s=core(p.schema), row=document.createElement("div");row.className="param";
+  const label=document.createElement("label");label.className="paramTitle";
+  const enabled=document.createElement("input");enabled.type="checkbox";enabled.checked=p.required||["limit","offset"].includes(p.name);enabled.disabled=!!p.required;
+  label.append(enabled,document.createTextNode(p.name+" · "+p.in+(p.required?" · 필수":"")));
+  let input;
+  if(s.enum||s.type==="boolean"){
+   input=document.createElement("select");
+   for(const value of s.enum||["true","false"]){const opt=document.createElement("option");opt.value=String(value);opt.textContent=String(value);input.append(opt);}
+  }else{
+   input=document.createElement("input");input.type="text";
+   if(s.type==="integer")input.inputMode="numeric";
+   input.value=p.name==="limit"?"50":p.name==="offset"?"0":"";
+   input.placeholder=s.format==="date"?"YYYY-MM-DD":p.name;
+  }
+  input.dataset.name=p.name;input.dataset.location=p.in;
+  const hint=document.createElement("small");
+  hint.textContent=(s.enum?s.enum.join(" / "):s.type||"string")+(s.format?" · "+s.format:"")+(s.minimum!==undefined?" · 최소 "+s.minimum:"")+(s.maximum!==undefined?" · 최대 "+s.maximum:"");
+  row.append(label,input,hint);row._param={p,enabled,input};$("params").append(row);
+ }
+ invalidate();
+}
+function invalidate(){
+ S.preview=null;$("confirmed").checked=false;
+ $("request").textContent="입력이 변경되었습니다. 요청 미리보기로 전송 내용을 확인하세요.";
+}
+function makeSnapshot(checkConfirmation=false){
+ const o=S.op;if(!o)throw Error("API를 선택하세요.");
+ const root=base($("base").value);let path=o.p;const query=[];
+ for(const row of $("params").children){
+  const {p,enabled,input}=row._param;
+  if(!enabled.checked)continue;
+  const raw=input.value;
+  if(raw!==raw.trim()||!raw)throw Error(p.name+": 값을 입력하세요. 선택 필터를 보내지 않으려면 체크를 끄세요.");
+  const s=core(p.schema);
+  const value=s.type==="integer"?(/^-?\d+$/.test(raw)?Number(raw):NaN):s.type==="boolean"?raw==="true":raw;
+  const errors=validate(value,p.schema,p.name,[]);
+  if(errors.length)throw Error(errors.join("\n"));
+  if(p.in==="path"){
+   if(raw==="."||raw===".."||/[\u0000-\u001f\u007f]/.test(raw))throw Error(p.name+": 잘못된 경로 ID");
+   path=path.replace("{"+p.name+"}",encodeURIComponent(raw));
+  }else query.push([p.name,raw]);
+ }
+ const q=Object.fromEntries(query);
+ if(q.date&&q.unscheduled==="true")throw Error("date와 unscheduled=true는 함께 사용할 수 없습니다.");
+ if(q.season_id&&q.event_id&&q.season_id!==q.event_id)throw Error("season_id와 event_id는 같은 값이어야 합니다.");
+ const url=root+path+(query.length?"?"+query.map(([k,v])=>encodeURIComponent(k)+"="+encodeURIComponent(v)).join("&"):"");
+ const headers={Accept:"application/json"};let body;
+ if(o.body){
+  try{body=JSON.stringify(JSON.parse($("body").value));}catch(_){throw Error("본문이 올바른 JSON이 아닙니다.");}
+  const value=JSON.parse(body),errors=validate(value,o.body,"body",[]);
+  if(errors.length)throw Error(errors.slice(0,10).join("\n"));
+  if(o.body.$ref.endsWith("/MatchResultRequest")){
+   const a=value.score_a!=null,b=value.score_b!=null;
+   if(a!==b)throw Error("score_a와 score_b는 둘 다 입력하거나 모두 생략하세요.");
+   if(value.result==="cancelled"&&(a||b))throw Error("cancelled에는 점수를 보내지 마세요.");
+  }
+  headers["Content-Type"]="application/json";
+ }
+ const token=o.g==="public"?"":$("token").value.trim();
+ if(o.g!=="public"){
+  if(!token||/[\r\n]/.test(token))throw Error("서비스 access_token을 입력하세요.");
+  if(!$("trusted").checked)throw Error("API 주소를 확인하고 이 주소로 토큰을 보낼 항목을 체크하세요.");
+ }
+ let key="";
+ if(needsKey(o)){
+  key=$("key").value.trim().toLowerCase();
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(key))throw Error("Idempotency-Key UUID를 생성하거나 입력하세요.");
+  headers["Idempotency-Key"]=key;
+  const old=S.bindings.get(key), binding=JSON.stringify([scope(),o.m,url,body||""]);
+  if(old&&old.binding!==binding)throw Error("이 키는 다른 계정·로그인 세션·주소·본문에 묶여 있습니다. 결과 미확인 요청은 원래 입력을 복원하세요. 새 작업일 때만 새 키를 만드세요.");
+ }
+ const timeout=Number($("timeout").value);
+ if(!Number.isInteger(timeout)||timeout<1000||timeout>300000)throw Error("제한 시간은 1000~300000ms 정수로 입력하세요.");
+ const fingerprint=JSON.stringify([o.m,url,body||"",key,scope(),S.generation]);
+ if(checkConfirmation&&write(o)){
+  if(!S.preview||S.preview.fingerprint!==fingerprint)throw Error("먼저 요청 미리보기를 눌러 현재 입력을 확인하세요.");
+  if(!$("confirmed").checked)throw Error("쓰기 요청 확인 항목을 체크하세요.");
+ }
+ return {op:o,url,headers,body,token,key,scope:scope(),timeout,fingerprint,generation:S.generation};
+}
+function showRequest(s){
+ const view={method:s.op.m,url:s.url,headers:{...s.headers},...(s.body?{body:JSON.parse(s.body)}:{})};
+ if(s.token)view.headers.Authorization="Bearer <토큰 표시 안 함>";
+ $("request").textContent=JSON.stringify(view,null,2);
+}
+function setBusy(busy){
+ S.busy=busy;
+ document.querySelectorAll("#settings input,#settings button,#editor input,#editor select,#editor textarea,#editor button,#group,#search,#operation").forEach(e=>e.disabled=busy);
+ if(!busy)document.querySelectorAll("#params .param").forEach(row=>row._param.enabled.disabled=!!row._param.p.required);
+ $("abort").disabled=!busy;
+}
+function resultText(text,status=""){ $("outcome").textContent=text;$("outcome").dataset.status=status; }
+function showHeaders(headers){
+ $("headers").textContent=JSON.stringify(headers,null,2);
+}
+function record(s,status,elapsed){
+ S.history.unshift({time:new Date().toLocaleTimeString("ko-KR"),method:s.op.m,path:s.op.p,status,elapsedMs:elapsed});
+ S.history=S.history.slice(0,10);
+ $("history").textContent=S.history.map(x=>x.time+"  "+x.method+" "+x.path+"  "+x.status+"  "+x.elapsedMs+"ms").join("\n");
+}
+async function send(){
+ if(S.busy)return;
+ let s;try{s=makeSnapshot(true);}catch(e){notice(e.message);return;}
+ $("confirmed").checked=false;
+ if(s.key){
+  const old=S.bindings.get(s.key);
+  S.bindings.set(s.key,{binding:JSON.stringify([s.scope,s.op.m,s.url,s.body||""]),outcome:"unknown",id:old&&old.id});
+ }
+ showRequest(s);notice("요청을 전송합니다. 중단해도 서버 처리가 되돌아가지는 않습니다.");
+ $("response").textContent="응답 대기 중…";$("checks").textContent="";$("headers").textContent="";$("status").textContent="대기";
+ resultText("전송 중");
+ const controller=new AbortController();S.controller=controller;setBusy(true);
+ const started=performance.now();let received=null,abortedByTimer=false;
+ const timer=setTimeout(()=>{abortedByTimer=true;controller.abort();},s.timeout);
+ let historyStatus="전송 오류";
+ try{
+  const headers={...s.headers};if(s.token)headers.Authorization="Bearer "+s.token;
+  received=await fetch(s.url,{method:s.op.m,headers,...(s.body?{body:s.body}:{}),signal:controller.signal,credentials:"omit",cache:"no-store",redirect:"error",referrerPolicy:"no-referrer"});
+  $("status").textContent="HTTP "+received.status;
+  const visible={};received.headers.forEach((value,key)=>visible[key]=value);showHeaders(visible);
+  // Reading/validation can fail even after the server committed a successful write.
+  const text=await received.text();
+  let value,validJSON=false;try{value=JSON.parse(text);validJSON=true;}catch(_){}
+  $("response").textContent=validJSON?JSON.stringify(value,null,2):(text||"(빈 본문)");
+  const checks=[];
+  checks.push((received.status===s.op.status?"통과":"불일치")+" · 정상 기대 HTTP "+s.op.status+", 실제 "+received.status);
+  let errors=[];
+  if(received.status===204){if(text)errors.push("204 응답은 본문이 없어야 합니다.");}
+  else if(!validJSON)errors.push("JSON 응답이 아닙니다. 프록시 HTML 오류도 상태 코드와 함께 확인하세요.");
+  else{
+   if(!/application\/(?:[A-Za-z0-9.+-]+\+)?json/i.test(received.headers.get("Content-Type")||""))errors.push("Content-Type이 JSON이 아닙니다.");
+   const target=received.status>=400?{$ref:"#/components/schemas/ErrorOut"}:s.op.response;
+   if(target)validate(value,target,"response",errors);
+  }
+  checks.push(errors.length?"검사 불일치\n"+errors.slice(0,15).join("\n"):"응답 형식 검사 통과");
+  if(s.op.g!=="public")checks.push(/no-store/i.test(received.headers.get("Cache-Control")||"")?"개인 응답 no-store 확인":"개인 응답 no-store 헤더를 확인하세요.");
+  if(received.headers.get("X-Data-Stale")==="1")checks.push("오래된 공개 스냅샷입니다. 배팅 가능 여부를 별도로 확인하세요.");
+  if(received.headers.get("Retry-After"))checks.push("Retry-After: "+received.headers.get("Retry-After")+" · 자동 재시도하지 않습니다.");
+  $("checks").textContent=checks.join("\n\n");
+  if(received.ok){
+   const mismatch=errors.length||received.status!==s.op.status;
+   resultText(mismatch?"HTTP 성공 · 응답 검사 불일치":"HTTP 성공",mismatch?"warn":"ok");
+   if(s.key)S.bindings.get(s.key).outcome="http-success";
+  }else{
+   resultText("HTTP "+received.status+" · "+(write(s.op)?"오류 내용과 실제 거래 상태를 확인하세요.":"오류 응답"),"warn");
+   if(s.key)S.bindings.get(s.key).outcome="http-"+received.status;
+  }
+  historyStatus="HTTP "+received.status;S.last={status:received.status,body:text};
+  notice("완료. 브라우저에서 읽을 수 없는 헤더는 서버의 CORS 노출 설정을 확인하세요.");
+ }catch(e){
+  const knownSuccess=received&&received.ok;
+  historyStatus=received?"HTTP "+received.status+" / 읽기 중단":"응답 미확인";
+  if(knownSuccess){
+   resultText("HTTP 성공 확인 · 본문 읽기 중단. 쓰기를 새 작업으로 재실행하지 마세요.","warn");
+  }else if(write(s.op)){
+   resultText("결과 미확인 · 서버 반영 여부를 먼저 확인하세요.","warn");
+  }else resultText("응답 확인 실패","warn");
+  $("checks").textContent=(abortedByTimer?"제한 시간 초과":e.name==="AbortError"?"사용자 중단":"네트워크·CORS·TLS·리다이렉트 오류")+
+   (write(s.op)?"\n중단은 거래 취소가 아닙니다. 같은 계정·세션·본문·키로 재확인하세요.":"\n주소·서버 상태·브라우저 CORS 설정을 확인하세요.");
+  if(!received){$("status").textContent="응답 없음";$("response").textContent="HTTP 응답을 확인하지 못했습니다.";}
+  notice(e.name==="AbortError"?"요청 대기를 중단했습니다. 서버 처리는 계속되었을 수 있습니다.":"요청 또는 응답 읽기 오류: "+e.message);
+ }finally{
+  clearTimeout(timer);const elapsed=Math.round(performance.now()-started);
+  $("elapsed").textContent=elapsed+" ms";record(s,historyStatus,elapsed);S.controller=null;setBusy(false);
+ }
+}
+$("group").onchange=fillSelect;$("search").oninput=fillSelect;
+$("operation").onchange=()=>{rememberKey();render();};
+$("base").oninput=()=>{$("trusted").checked=false;invalidate();};
+$("token").oninput=()=>{
+ S.generation++;$("trusted").checked=false;$("key").value="";$("response").textContent="인증 입력 변경으로 개인 응답을 비웠습니다.";$("headers").textContent="";$("checks").textContent="";S.last=null;invalidate();
+};
+$("trusted").onchange=invalidate;
+$("timeout").oninput=invalidate;
+$("params").oninput=invalidate;$("params").onchange=invalidate;
+$("body").oninput=invalidate;
+$("key").oninput=()=>{rememberKey();invalidate();};
+$("newKey").onclick=()=>{try{$("key").value=uuid();rememberKey();invalidate();notice("새 작업 키를 만들었습니다. 결과 미확인 작업은 원래 키를 사용하세요.");}catch(e){notice(e.message);}};
+$("preview").onclick=()=>{try{const s=makeSnapshot();S.preview=s;$("confirmed").checked=false;showRequest(s);notice(write(s.op)?"미리보기를 확인한 뒤 쓰기 확인을 체크하고 요청 보내기를 누르세요.":"요청 보내기를 누르면 한 번 호출합니다.");}catch(e){notice(e.message);}};
+$("send").onclick=send;
+$("abort").onclick=()=>{if(S.controller)S.controller.abort();};
+$("clear").onclick=()=>{
+ $("token").value="";$("trusted").checked=false;S.generation++;S.keys.clear();S.bindings.clear();S.history=[];S.last=null;
+ $("key").value="";$("response").textContent="";$("headers").textContent="";$("checks").textContent="";$("history").textContent="";
+ resultText("대기");$("status").textContent="—";$("elapsed").textContent="";invalidate();
+ notice("토큰·응답·기록을 지웠습니다. 결과 미확인 작업은 지우기 전에 키와 본문을 별도로 확인하세요.");
+};
+$("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("response").textContent);notice("응답을 복사했습니다.");}catch(_){notice("복사 권한을 사용할 수 없습니다. 응답 텍스트를 선택해 복사하세요.");}};
+$("format").onclick=()=>{try{$("body").value=JSON.stringify(JSON.parse($("body").value),null,2);invalidate();}catch(_){notice("올바른 JSON이 아닙니다.");}};
+$("version").textContent="v"+D.version+" · "+D.ops.length+"개 API";
+if(location.protocol==="https:"||location.protocol==="http:")$("base").value=location.origin+"/api/v1";
+else notice("로컬 파일에서 CORS로 막히면 개발 프론트와 같은 origin에 이 HTML을 올리세요. 운영 서버에서 file://의 null origin을 허용하지 마세요.");
+fillSelect();
+// Opening this HTML sends no API requests and stores no credentials in browser storage.</script>
+</body>
+</html>

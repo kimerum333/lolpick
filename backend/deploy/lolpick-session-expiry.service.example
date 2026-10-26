@@ -1,0 +1,23 @@
+[Unit]
+Description=LOLPICK session status cleanup
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=lolpick
+Group=lolpick
+EnvironmentFile=/etc/lolpick/backend.env
+Environment=APP_ENV=production
+Environment=LOG_DIRECTORY=/var/lib/lolpick/audit
+StateDirectory=lolpick
+StateDirectoryMode=0700
+UMask=0077
+WorkingDirectory=/opt/lolpick/backend
+ExecStart=/opt/lolpick/backend/.venv/bin/python -m app.expire_sessions
+StandardOutput=journal
+StandardError=journal
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/lolpick

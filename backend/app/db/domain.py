@@ -1,0 +1,96 @@
+"""Current numeric enums and identifier validation; no historical schema imports."""
+import re
+
+MAX_POINTS = 9_007_199_254_740_991
+
+CODES = {
+    "season_status": {1: "upcoming", 2: "active", 3: "finished"},
+    "session_status": {1: "active", 2: "expired", 3: "revoked"},
+    "match_status": {1: "scheduled", 2: "live", 3: "finished", 4: "cancelled"},
+    "result": {1: "team_a_win", 2: "team_b_win", 3: "draw", 4: "cancelled"},
+    "settlement_status": {1: "pending", 2: "settled", 3: "refunded"},
+    "provider_status": {1: "not_started", 2: "postponed", 3: "running", 4: "finished", 5: "canceled"},
+    "bet_status": {1: "pending", 2: "won", 3: "lost", 4: "refunded"},
+    "cheer_action": {1: "cheering", 2: "betrayal"},
+    "point_reason": {
+        1: "season_open",
+        2: "signup",
+        3: "attendance",
+        4: "reward",
+        5: "bet_stake",
+        6: "bet_payout",
+        7: "bet_refund",
+        8: "admin_adjustment",
+    },
+    "outcome": {1: "success", 2: "failure", 3: "rejected"},
+    "severity": {1: "info", 2: "warning", 3: "error"},
+    "source": {1: "api", 2: "business", 3: "system", 4: "admin"},
+    "phase": {1: "started", 2: "finished", 3: "unknown"},
+    "http_method": {1: "GET", 2: "POST", 3: "PUT", 4: "PATCH", 5: "DELETE", 6: "HEAD", 7: "OPTIONS", 8: "OTHER"},
+    "route": {
+        0: "unknown",
+        1: "/api/v1/health",
+        2: "/api/v1/ready",
+        3: "/api/v1/teams",
+        4: "/api/v1/seasons",
+        5: "/api/v1/events",
+        6: "/api/v1/matches",
+        7: "/api/v1/matches/{match_id}",
+        8: "/api/v1/auth/session",
+        9: "/api/v1/auth/me",
+        10: "/api/v1/auth/logout",
+        11: "/api/v1/admin/seasons/{season_id}/refresh",
+        12: "/api/v1/admin/seasons/{season_id}/activate",
+        13: "/api/v1/admin/seasons/{season_id}/finish",
+        14: "/api/v1/admin/matches/{match_id}/result",
+        15: "/api/v1/auth/cheer",
+        16: "/api/v1/auth/bets",
+        17: "/api/v1/events/{event_id}",
+        18: "/api/v1/matches/{match_id}/stake-ranking",
+        19: "/api/v1/auth/matches/{match_id}/context",
+    },
+    "event": {
+        1: "http.request.started",
+        2: "http.request",
+        3: "http.admission_rejected",
+        10: "catalog.teams.view",
+        11: "catalog.seasons.view",
+        12: "catalog.matches.view",
+        20: "points.changed",
+        21: "admin.role.changed",
+        22: "season.finished",
+        23: "season.activated",
+        24: "auth.member.created",
+        25: "auth.session.sync",
+        26: "auth.login",
+        30: "bet.placed",
+        31: "bet.settled",
+        32: "bet.refunded",
+        33: "cheer.contracted",
+        34: "settlement.blocked",
+        35: "matches.synced",
+        36: "worker.sync.started",
+        37: "worker.sync.completed",
+        900: "legacy_or_unregistered",
+    },
+}
+
+ISSUES = {
+    "opponents_tbd": 1,
+    "start_time_unknown": 2,
+    "postponed": 4,
+    "finished_without_winner": 8,
+    "draw": 16,
+    "opponents_changed_after_betting": 32,
+    "finalized_result_changed": 64,
+    "provider_status_regressed": 128,
+    "cancelled_match_reappeared": 256,
+    "settlement_blocked": 512,
+    "opponents_unavailable_for_existing_match": 1024,
+    "invalid_provider_issues": 2048,
+}
+
+def validate_schema_name(value: str) -> str:
+    if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", value):
+        raise ValueError("Schema name must be a lowercase SQL identifier.")
+    return value

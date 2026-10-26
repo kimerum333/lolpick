@@ -1,0 +1,30 @@
+# Example only: set actual service user, paths and a private EnvironmentFile.
+[Unit]
+Description=LOLPICK backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lolpick
+Group=lolpick
+WorkingDirectory=/opt/lolpick/backend
+EnvironmentFile=/etc/lolpick/backend.env
+Environment=APP_ENV=production
+Environment=LOG_DIRECTORY=/var/lib/lolpick/audit
+Environment='TRUSTED_PROXY_CIDRS=["127.0.0.1/32","::1/128"]'
+StateDirectory=lolpick
+StateDirectoryMode=0700
+UMask=0077
+ExecStart=/opt/lolpick/backend/.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2 --limit-concurrency 64 --timeout-keep-alive 5 --no-proxy-headers --no-access-log
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=60
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/lolpick
+
+[Install]
+WantedBy=multi-user.target

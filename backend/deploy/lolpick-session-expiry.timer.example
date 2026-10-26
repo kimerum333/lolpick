@@ -1,0 +1,10 @@
+[Unit]
+Description=Update idle expired LOLPICK session statuses
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+Unit=lolpick-session-expiry.service
+
+[Install]
+WantedBy=timers.target

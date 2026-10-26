@@ -1,0 +1,27 @@
+# Set PANDASCORE_SEASON_ID and PANDASCORE_SERIES_ID in the private EnvironmentFile.
+# Import/bind the season first; scheduled runs do not create or activate seasons.
+[Unit]
+Description=LOLPICK hourly PandaScore collection
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=lolpick
+Group=lolpick
+WorkingDirectory=/opt/lolpick/backend
+EnvironmentFile=/etc/lolpick/backend.env
+Environment=APP_ENV=production
+Environment=LOG_DIRECTORY=/var/lib/lolpick/audit
+StateDirectory=lolpick
+StateDirectoryMode=0700
+UMask=0077
+ExecStart=/opt/lolpick/backend/.venv/bin/python -m app.sync_pandascore sync --season-id ${PANDASCORE_SEASON_ID} --series-id ${PANDASCORE_SERIES_ID}
+# A failed run is logged and the timer will invoke a new process next hour.
+# This is an OS stop deadline, not a guarantee that every interrupted commit rolled back.
+TimeoutStartSec=150
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/lolpick

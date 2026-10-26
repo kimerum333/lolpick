@@ -1,0 +1,20 @@
+[Unit]
+Description=LOLPICK read-only point ledger reconciliation
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=lolpick
+Group=lolpick
+EnvironmentFile=/etc/lolpick/backend.env
+Environment=APP_ENV=production
+WorkingDirectory=/opt/lolpick/backend
+ExecStart=/opt/lolpick/backend/.venv/bin/python -m app.reconcile_points
+StandardOutput=journal
+StandardError=journal
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+

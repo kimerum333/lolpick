@@ -1,0 +1,11 @@
+[Unit]
+Description=Check LOLPICK point ledger hourly without repairing balances
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+RandomizedDelaySec=60
+Unit=lolpick-reconcile.service
+
+[Install]
+WantedBy=timers.target

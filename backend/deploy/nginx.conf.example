@@ -1,0 +1,121 @@
+# Example only: place http-level directives in the nginx http block.
+# Adjust domain, certificate paths and OS permissions; run nginx -t before use.
+log_format lolpick_safe '$time_iso8601 status=$status request_id=$upstream_http_x_request_id';
+map $upstream_http_x_request_id $lolpick_error_request_id {
+    default $upstream_http_x_request_id;
+    "" $request_id;
+}
+# Add only the same exact production origins as backend CORS_ORIGINS.
+map $http_origin $lolpick_error_origin {
+    default "";
+    "http://localhost:5173" $http_origin;
+    "http://127.0.0.1:5173" $http_origin;
+}
+limit_req_zone $binary_remote_addr zone=lolpick_public:10m rate=2r/s;
+limit_req_zone $binary_remote_addr zone=lolpick_auth:10m rate=120r/m;
+limit_req_zone $binary_remote_addr zone=lolpick_admin:10m rate=120r/m;
+limit_conn_zone $binary_remote_addr zone=lolpick_client:10m;
+limit_conn_zone $server_name zone=lolpick_global:1m;
+
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+    server_name _;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_reject_handshake on;
+    return 444;
+}
+server {
+    listen 80;
+    listen [::]:80;
+    server_name api.example.com;
+    return 308 https://api.example.com$request_uri;
+}
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name api.example.com;
+    ssl_certificate /etc/ssl/lolpick/fullchain.pem;
+    ssl_certificate_key /etc/ssl/lolpick/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    # Checks both SNI and HTTP Host; correct-domain connections to the server IP
+    # still need infrastructure access policy when an upstream proxy is used.
+    if ($ssl_server_name != api.example.com) { return 444; }
+    if ($host != api.example.com) { return 444; }
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    access_log /var/log/nginx/lolpick-access.log lolpick_safe;
+    # Infrastructure error logs may contain request URLs: restrict access and retention.
+    error_log /var/log/nginx/lolpick-error.log warn;
+    client_max_body_size 32k;
+    client_body_timeout 5s;
+    client_header_timeout 5s;
+    large_client_header_buffers 2 8k;
+    limit_req_status 429;
+    limit_conn_status 503;
+    limit_conn lolpick_client 10;
+    limit_conn lolpick_global 128;
+    proxy_http_version 1.1;
+    proxy_connect_timeout 3s;
+    proxy_read_timeout 60s;
+    proxy_send_timeout 10s;
+    proxy_buffering on;
+    proxy_intercept_errors on;
+    error_page 500 502 503 504 =503 @lolpick_unavailable;
+    error_page 429 =429 @lolpick_rate_limited;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For "";
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header Connection "";
+    # Never retry financial POST to another upstream automatically.
+    proxy_next_upstream off;
+    location /api/v1/auth/ {
+        limit_req zone=lolpick_auth burst=5 nodelay;
+        proxy_pass http://127.0.0.1:8000;
+    }
+    location /api/v1/admin/ {
+        limit_req zone=lolpick_admin burst=5 nodelay;
+        # Default collection budget 60s + in-progress HTTP wait + DB budget 30s.
+        # Recalculate if operators increase collection/DB budgets.
+        proxy_read_timeout 120s;
+        proxy_pass http://127.0.0.1:8000;
+    }
+    location /api/v1/ {
+        limit_req zone=lolpick_public burst=20 nodelay;
+        proxy_pass http://127.0.0.1:8000;
+    }
+    location / { return 404; }
+    location @lolpick_unavailable {
+        default_type application/json;
+        charset utf-8;
+        add_header Cache-Control "no-store" always;
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header Retry-After "5" always;
+        add_header X-Request-ID $lolpick_error_request_id always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Access-Control-Allow-Origin $lolpick_error_origin always;
+        add_header Access-Control-Expose-Headers "X-Request-ID, Retry-After" always;
+        add_header Vary "Origin" always;
+        return 503 '{"detail":{"code":"service_unavailable","message":"잠시 처리할 수 없습니다. 잠시 후 다시 시도해 주세요."}}';
+    }
+    location @lolpick_rate_limited {
+        default_type application/json;
+        charset utf-8;
+        add_header Cache-Control "no-store" always;
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Retry-After "60" always;
+        add_header X-Request-ID $lolpick_error_request_id always;
+        add_header Access-Control-Allow-Origin $lolpick_error_origin always;
+        add_header Access-Control-Expose-Headers "X-Request-ID, Retry-After" always;
+        add_header Vary "Origin" always;
+        return 429 '{"detail":{"code":"rate_limited","message":"잠시 후 다시 시도해 주세요."}}';
+    }
+}
